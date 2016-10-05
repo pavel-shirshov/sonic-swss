@@ -133,6 +133,12 @@ void NeighOrch::doTask(Consumer &consumer)
 
         IpAddress ip_address(key.substr(found+1));
 
+        if (!ip_address.isV4())
+        {
+            it = consumer.m_toSync.erase(it);
+            continue;
+        }
+
         NeighborEntry neighbor_entry = { ip_address, alias };
 
         string op = kfvOp(t);

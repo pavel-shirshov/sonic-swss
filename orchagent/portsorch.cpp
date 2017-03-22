@@ -207,6 +207,7 @@ bool PortsOrch::setPortAdminStatus(sai_object_id_t id, bool up)
     attr.id = SAI_PORT_ATTR_ADMIN_STATE;
     attr.value.booldata = up;
 
+    SWSS_LOG_NOTICE("fast-reboot. set_port_attribute. %s %d", up ? "UP" : "DOWN", id);
     sai_status_t status = sai_port_api->set_port_attribute(id, &attr);
     if (status != SAI_STATUS_SUCCESS)
     {
@@ -231,6 +232,7 @@ bool PortsOrch::setHostIntfsOperStatus(sai_object_id_t port_id, bool up)
             attr.id = SAI_HOSTIF_ATTR_OPER_STATUS;
             attr.value.booldata = up;
 
+            SWSS_LOG_NOTICE("fast-reboot. set_hostif_attribute. %s %d", up ? "UP" : "DOWN", it->second.m_alias.c_str());
             sai_status_t status = sai_hostif_api->set_hostif_attribute(it->second.m_hif_id, &attr);
             if (status != SAI_STATUS_SUCCESS)
             {
@@ -339,8 +341,10 @@ void PortsOrch::doPortTask(Consumer &consumer)
                         p.m_port_id = id;
 
                         /* Initialize the port and create router interface and host interface */
+                        SWSS_LOG_NOTICE("fast-reboot. initializePort: %s", alias.c_str());
                         if (initializePort(p))
                         {
+                            SWSS_LOG_NOTICE("fast-reboot. end of initializePort: %s", alias.c_str());
                             /* Add port to port list */
                             m_portList[alias] = p;
                             /* Add port name map to counter table */
@@ -772,7 +776,9 @@ bool PortsOrch::addHostIntfs(sai_object_id_t id, string alias, sai_object_id_t &
     strncpy((char *)&attr.value.chardata, alias.c_str(), HOSTIF_NAME_SIZE);
     attrs.push_back(attr);
 
+    SWSS_LOG_NOTICE("fast-reboot. create_hostif %s", alias.c_str());
     sai_status_t status = sai_hostif_api->create_hostif(&host_intfs_id, attrs.size(), attrs.data());
+    SWSS_LOG_NOTICE("fast-reboot. end of create_hostif %s", alias.c_str());
     if (status != SAI_STATUS_SUCCESS)
     {
         SWSS_LOG_ERROR("Failed to create host interface for port %s", alias.c_str());
@@ -789,8 +795,10 @@ bool PortsOrch::addVlan(string vlan_alias)
     SWSS_LOG_ENTER();
 
     sai_vlan_id_t vlan_id = stoi(vlan_alias.substr(4));
-    sai_status_t status = sai_vlan_api->create_vlan(vlan_id);
 
+    SWSS_LOG_NOTICE("fast-reboot. create_vlan %s", vlan_alias.c_str());
+    sai_status_t status = sai_vlan_api->create_vlan(vlan_id);
+    SWSS_LOG_NOTICE("fast-reboot. end of create_vlan %s", vlan_alias.c_str());
     if (status != SAI_STATUS_SUCCESS)
     {
         SWSS_LOG_ERROR("Failed to create VLAN %s vid:%hu", vlan_alias.c_str(), vlan_id);
@@ -818,7 +826,9 @@ bool PortsOrch::removeVlan(Port vlan)
         return false;
     }
 
+    SWSS_LOG_NOTICE("fast-reboot. remove_vlan");
     sai_status_t status = sai_vlan_api->remove_vlan(vlan.m_vlan_id);
+    SWSS_LOG_NOTICE("fast-reboot. end of remove_vlan");
     if (status != SAI_STATUS_SUCCESS)
     {
         SWSS_LOG_ERROR("Failed to remove VLAN %s vid:%hu", vlan.m_alias.c_str(), vlan.m_vlan_id);
@@ -848,8 +858,10 @@ bool PortsOrch::addVlanMember(Port vlan, Port port)
     attrs.push_back(attr);
 
     sai_object_id_t vlan_member_id;
-    sai_status_t status = sai_vlan_api->create_vlan_member(&vlan_member_id, attrs.size(), attrs.data());
 
+    SWSS_LOG_NOTICE("fast-reboot. create_vlan_member");
+    sai_status_t status = sai_vlan_api->create_vlan_member(&vlan_member_id, attrs.size(), attrs.data());
+    SWSS_LOG_NOTICE("fast-reboot. end of create_vlan_member");
     if (status != SAI_STATUS_SUCCESS)
     {
         SWSS_LOG_ERROR("Failed to add member %s to VLAN %s vid:%hu pid:%lx",
@@ -863,7 +875,9 @@ bool PortsOrch::addVlanMember(Port vlan, Port port)
     attr.id = SAI_PORT_ATTR_PORT_VLAN_ID;
     attr.value.u16 = vlan.m_vlan_id;
 
+    SWSS_LOG_NOTICE("fast-reboot. set_port_attribute");
     status = sai_port_api->set_port_attribute(port.m_port_id, &attr);
+    SWSS_LOG_NOTICE("fast-reboot. end of set_port_attribute");
     if (status != SAI_STATUS_SUCCESS)
     {
         SWSS_LOG_ERROR("Failed to set port VLAN ID vid:%hu pid:%lx",
@@ -890,8 +904,9 @@ bool PortsOrch::removeVlanMember(Port vlan, Port port)
 {
     SWSS_LOG_ENTER();
 
+    SWSS_LOG_NOTICE("fast-reboot. remove_vlan_member");
     sai_status_t status = sai_vlan_api->remove_vlan_member(port.m_vlan_member_id);
-
+    SWSS_LOG_NOTICE("fast-reboot. end of remove_vlan_member");
     if (status != SAI_STATUS_SUCCESS)
     {
         SWSS_LOG_ERROR("Failed to remove member %s from VLAN %s vid:%hx vmid:%lx",
@@ -906,7 +921,9 @@ bool PortsOrch::removeVlanMember(Port vlan, Port port)
     attr.id = SAI_PORT_ATTR_PORT_VLAN_ID;
     attr.value.u16 = DEFAULT_PORT_VLAN_ID;
 
+    SWSS_LOG_NOTICE("fast-reboot. set_port_attribute");
     status = sai_port_api->set_port_attribute(port.m_port_id, &attr);
+    SWSS_LOG_NOTICE("fast-reboot. end of set_port_attribute");
     if (status != SAI_STATUS_SUCCESS)
     {
         SWSS_LOG_ERROR("Failed to reset port VLAN ID to DEFAULT_PORT_VLAN_ID pid:%lx",
@@ -932,8 +949,9 @@ bool PortsOrch::addLag(string lag_alias)
     SWSS_LOG_ENTER();
 
     sai_object_id_t lag_id;
+    SWSS_LOG_NOTICE("fast-reboot. create_lag: %s", lag_alias.c_str());
     sai_status_t status = sai_lag_api->create_lag(&lag_id, 0, NULL);
-
+    SWSS_LOG_NOTICE("fast-reboot. end create_lag: %s", lag_alias.c_str());
     if (status != SAI_STATUS_SUCCESS)
     {
         SWSS_LOG_ERROR("Failed to create LAG %s lid:%lx", lag_alias.c_str(), lag_id);
@@ -960,8 +978,9 @@ bool PortsOrch::removeLag(Port lag)
         SWSS_LOG_ERROR("Failed to remove non-empty LAG %s", lag.m_alias.c_str());
         return false;
     }
-
+    SWSS_LOG_NOTICE("fast-reboot. remove_lag");
     sai_status_t status = sai_lag_api->remove_lag(lag.m_lag_id);
+    SWSS_LOG_NOTICE("fast-reboot. end of remove_lag");
     if (status != SAI_STATUS_SUCCESS)
     {
         SWSS_LOG_ERROR("Failed to remove LAG %s lid:%lx", lag.m_alias.c_str(), lag.m_lag_id);
@@ -991,7 +1010,9 @@ bool PortsOrch::addLagMember(Port lag, Port port)
     attrs.push_back(attr);
 
     sai_object_id_t lag_member_id;
+    SWSS_LOG_NOTICE("fast-reboot. create_lag_member %s %s", lag.m_alias.c_str());
     sai_status_t status = sai_lag_api->create_lag_member(&lag_member_id, attrs.size(), attrs.data());
+    SWSS_LOG_NOTICE("fast-reboot. end create_lag_member %s %s", lag.m_alias.c_str());
 
     if (status != SAI_STATUS_SUCCESS)
     {
@@ -1018,8 +1039,9 @@ bool PortsOrch::addLagMember(Port lag, Port port)
 
 bool PortsOrch::removeLagMember(Port lag, Port port)
 {
+    SWSS_LOG_NOTICE("fast-reboot. remove_lag_member");
     sai_status_t status = sai_lag_api->remove_lag_member(port.m_lag_member_id);
-
+    SWSS_LOG_NOTICE("fast-reboot. end remove_lag_member");
     if (status != SAI_STATUS_SUCCESS)
     {
         SWSS_LOG_ERROR("Failed to remove member %s from LAG %s lid:%lx lmid:%lx",

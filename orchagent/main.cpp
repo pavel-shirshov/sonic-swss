@@ -84,7 +84,7 @@ const service_method_table_t test_services = {
 void initSaiApi()
 {
     SWSS_LOG_ENTER();
-
+    SWSS_LOG_NOTICE("fast-reboot. init_sai_api");
     sai_api_initialize(0, (service_method_table_t *)&test_services);
 
     sai_api_query(SAI_API_SWITCH,               (void **)&sai_switch_api);
@@ -139,6 +139,7 @@ int main(int argc, char **argv)
     swss::Logger::linkToDbNative("orchagent");
 
     SWSS_LOG_ENTER();
+    SWSS_LOG_NOTICE("fast-reboot. starting");
 
     int opt;
     sai_status_t status;
@@ -268,6 +269,7 @@ int main(int argc, char **argv)
     /* Initialize orchestration components */
     DBConnector *appl_db = new DBConnector(APPL_DB, DBConnector::DEFAULT_UNIXSOCKET, 0);
     OrchDaemon *orchDaemon = new OrchDaemon(appl_db);
+    SWSS_LOG_NOTICE("fast-reboot. orchDaemon->init()");
     if (!orchDaemon->init())
     {
         SWSS_LOG_ERROR("Failed to initialize orchstration daemon");
@@ -287,7 +289,7 @@ int main(int argc, char **argv)
             SWSS_LOG_ERROR("Failed to notify syncd APPLY_VIEW %d", status);
             exit(EXIT_FAILURE);
         }
-
+        SWSS_LOG_NOTICE("fast-reboot. orchDaemon->start()");
         orchDaemon->start();
     }
     catch (char const *e)

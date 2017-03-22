@@ -36,6 +36,8 @@ void TeamSync::onMsg(int nlmsg_type, struct nl_object *obj)
 
     bool tracked = m_teamPorts.find(lagName) != m_teamPorts.end();
 
+    SWSS_LOG_NOTICE("fast-reboot. type: %s, lagName: %s nlmsg_type: %d", type, lagName, nlmsg_type);
+
     if ((nlmsg_type == RTM_DELLINK) && tracked)
     {
         /* Remove LAG ports and delete LAG */
@@ -43,8 +45,9 @@ void TeamSync::onMsg(int nlmsg_type, struct nl_object *obj)
         return;
     }
 
-    if ((nlmsg_type == RTM_NEWLINK) && tracked)
+    if ((nlmsg_type == RTM_NEWLINK) && tracked) {
         return;
+    }
 
     /*
      * New LAG was dedcated for the first time. Sync admin and oper state since

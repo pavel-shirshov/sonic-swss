@@ -34,6 +34,8 @@ void IntfSync::onMsg(int nlmsg_type, struct nl_object *obj)
     if (rtnl_addr_get_scope(addr) != RT_SCOPE_UNIVERSE)
     {
         scope = "local";
+        nl_addr2str(rtnl_addr_get_local(addr), addrStr, MAX_ADDR_SIZE);
+        SWSS_LOG_NOTICE("fast-reboot. Don't sync local routes: %s", addrStr);
         return;
     }
 
@@ -49,6 +51,7 @@ void IntfSync::onMsg(int nlmsg_type, struct nl_object *obj)
     key+= ":";
     nl_addr2str(rtnl_addr_get_local(addr), addrStr, MAX_ADDR_SIZE);
     key+= addrStr;
+    SWSS_LOG_NOTICE("fast-reboot. onMsg. key: %s family: %s nlmsg_type: %d, addr: %s", key.c_str(), family.c_str(), nlmsg_type, addrStr);
     if (nlmsg_type == RTM_DELADDR)
     {
         m_intfTable.del(key);

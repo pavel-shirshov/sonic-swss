@@ -35,6 +35,7 @@ bool NeighOrch::addNextHop(IpAddress ipAddress, string alias)
     next_hop_attrs[2].value.oid = rif_id;
 
     sai_object_id_t next_hop_id;
+    SWSS_LOG_NOTICE("fast-reboot. create_next_hop id:%lx, ip:%s", next_hop_id, ipAddress.to_string().c_str());
     sai_status_t status = sai_next_hop_api->create_next_hop(&next_hop_id, 3, next_hop_attrs);
     if (status != SAI_STATUS_SUCCESS)
     {
@@ -219,6 +220,7 @@ bool NeighOrch::addNeighbor(NeighborEntry neighborEntry, MacAddress macAddress)
 
     if (m_syncdNeighbors.find(neighborEntry) == m_syncdNeighbors.end())
     {
+        SWSS_LOG_NOTICE("fast-reboot. create_neighbor_entry alias:%s ip:%s", alias.c_str(), ip_address.to_string().c_str());
         status = sai_neighbor_api->create_neighbor_entry(&neighbor_entry, 1, &neighbor_attr);
         if (status != SAI_STATUS_SUCCESS)
         {
@@ -231,6 +233,7 @@ bool NeighOrch::addNeighbor(NeighborEntry neighborEntry, MacAddress macAddress)
 
         if (!addNextHop(ip_address, alias))
         {
+            SWSS_LOG_NOTICE("fast-reboot. remove_neighbor_entry alias:%s ip:%s", alias.c_str(), ip_address.to_string().c_str());
             status = sai_neighbor_api->remove_neighbor_entry(&neighbor_entry);
             if (status != SAI_STATUS_SUCCESS)
             {
@@ -243,6 +246,7 @@ bool NeighOrch::addNeighbor(NeighborEntry neighborEntry, MacAddress macAddress)
     }
     else
     {
+        SWSS_LOG_NOTICE("fast-reboot. set_neighbor_attribute alias:%s ip:%s", alias.c_str(), ip_address.to_string().c_str());
         status = sai_neighbor_api->set_neighbor_attribute(&neighbor_entry, &neighbor_attr);
         if (status != SAI_STATUS_SUCCESS)
         {
@@ -284,6 +288,7 @@ bool NeighOrch::removeNeighbor(NeighborEntry neighborEntry)
     copy(neighbor_entry.ip_address, ip_address);
 
     sai_object_id_t next_hop_id = m_syncdNextHops[ip_address].next_hop_id;
+    SWSS_LOG_NOTICE("fast-reboot. remove_next_hop alias:%s ip:%s", alias.c_str(), ip_address.to_string().c_str());
     status = sai_next_hop_api->remove_next_hop(next_hop_id);
     if (status != SAI_STATUS_SUCCESS)
     {
@@ -299,6 +304,7 @@ bool NeighOrch::removeNeighbor(NeighborEntry neighborEntry)
         }
     }
 
+    SWSS_LOG_NOTICE("fast-reboot. remove_neighbor_entry alias:%s ip:%s", alias.c_str(), ip_address.to_string().c_str());
     status = sai_neighbor_api->remove_neighbor_entry(&neighbor_entry);
     if (status != SAI_STATUS_SUCCESS)
     {

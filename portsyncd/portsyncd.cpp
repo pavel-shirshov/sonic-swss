@@ -11,6 +11,7 @@
 #include "netlink.h"
 #include "producerstatetable.h"
 #include "portsyncd/linksync.h"
+#include "logger.h"
 
 #define DEFAULT_PORT_CONFIG_FILE     "port_config.ini"
 
@@ -44,6 +45,8 @@ void handleVlanIntfFile(string file);
 int main(int argc, char **argv)
 {
     Logger::linkToDbNative("portsyncd");
+    SWSS_LOG_ENTER();
+    SWSS_LOG_NOTICE("fast-reboot. Starting");
     int opt;
     string port_config_file = DEFAULT_PORT_CONFIG_FILE;
 
@@ -82,6 +85,7 @@ int main(int argc, char **argv)
         handlePortConfigFile(p, port_config_file);
 
         s.addSelectable(&netlink);
+        SWSS_LOG_NOTICE("fast-reboot. main loop");
         while (true)
         {
             Selectable *temps;
@@ -110,6 +114,7 @@ int main(int argc, char **argv)
                     p.set("ConfigDone", attrs);
 
                     g_init = true;
+                    SWSS_LOG_NOTICE("fast-reboot. ConfigDone is set");
                 }
             }
         }

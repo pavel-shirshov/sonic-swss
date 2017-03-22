@@ -11,6 +11,9 @@ using namespace swss;
 int main(int argc, char **argv)
 {
     swss::Logger::linkToDbNative("fpmsyncd");
+    SWSS_LOG_ENTER();
+    SWSS_LOG_NOTICE("fast-reboot. starting");
+
     DBConnector db(APPL_DB, DBConnector::DEFAULT_UNIXSOCKET, 0);
     RedisPipeline pipeline(&db);
     RouteSync sync(&pipeline);
@@ -30,6 +33,7 @@ int main(int argc, char **argv)
             cout << "Connected!" << endl;
 
             s.addSelectable(&fpm);
+            SWSS_LOG_NOTICE("fast-reboot. main loop");
             while (true)
             {
                 Selectable *temps;
@@ -37,7 +41,7 @@ int main(int argc, char **argv)
                 /* Reading FPM messages forever (and calling "readMe" to read them) */
                 s.select(&temps, &tempfd);
                 pipeline.flush();
-                SWSS_LOG_DEBUG("Pipeline flushed");
+                SWSS_LOG_NOTICE("Pipeline flushed");
             }
         }
         catch (FpmLink::FpmConnectionClosedException &e)

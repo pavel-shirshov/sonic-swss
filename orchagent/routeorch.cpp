@@ -396,8 +396,10 @@ bool RouteOrch::addNextHopGroup(IpAddresses ipAddresses)
     nhg_attrs.push_back(nhg_attr);
 
     sai_object_id_t next_hop_group_id;
+    SWSS_LOG_NOTICE("fast-reboot. create_next_hop_group");
     sai_status_t status = sai_next_hop_group_api->
             create_next_hop_group(&next_hop_group_id, nhg_attrs.size(), nhg_attrs.data());
+    SWSS_LOG_NOTICE("fast-reboot. end of create_next_hop_group");
     if (status != SAI_STATUS_SUCCESS)
     {
         SWSS_LOG_ERROR("Failed to create next hop group nh:%s\n",
@@ -434,7 +436,9 @@ bool RouteOrch::removeNextHopGroup(IpAddresses ipAddresses)
     if (m_syncdNextHopGroups[ipAddresses].ref_count == 0)
     {
         sai_object_id_t next_hop_group_id = m_syncdNextHopGroups[ipAddresses].next_hop_group_id;
+        SWSS_LOG_NOTICE("fast-reboot. remove_next_hop_group");
         sai_status_t status = sai_next_hop_group_api->remove_next_hop_group(next_hop_group_id);
+        SWSS_LOG_NOTICE("fast-reboot. end of remove_next_hop_group");
         if (status != SAI_STATUS_SUCCESS)
         {
             SWSS_LOG_ERROR("Failed to remove next hop group nhgid:%lx\n", next_hop_group_id);
@@ -565,7 +569,9 @@ bool RouteOrch::addRoute(IpPrefix ipPrefix, IpAddresses nextHops)
         route_attr.id = SAI_ROUTE_ATTR_NEXT_HOP_ID;
         route_attr.value.oid = next_hop_id;
 
+        SWSS_LOG_NOTICE("fast-reboot. create_route %s %s", ipPrefix.to_string().c_str(), nextHops.to_string().c_str());
         sai_status_t status = sai_route_api->create_route(&route_entry, 1, &route_attr);
+        SWSS_LOG_NOTICE("fast-reboot. end of create_route %s %s", ipPrefix.to_string().c_str(), nextHops.to_string().c_str());
         if (status != SAI_STATUS_SUCCESS)
         {
             SWSS_LOG_ERROR("Failed to create route %s with next hop(s) %s",
@@ -589,7 +595,9 @@ bool RouteOrch::addRoute(IpPrefix ipPrefix, IpAddresses nextHops)
         route_attr.id = SAI_ROUTE_ATTR_PACKET_ACTION;
         route_attr.value.s32 = SAI_PACKET_ACTION_FORWARD;
 
+        SWSS_LOG_NOTICE("fast-reboot. set_route_attribute");
         sai_status_t status = sai_route_api->set_route_attribute(&route_entry, &route_attr);
+        SWSS_LOG_NOTICE("fast-reboot. end of set_route_attribute");
         if (status != SAI_STATUS_SUCCESS)
         {
             SWSS_LOG_ERROR("Failed to set route %s with packet action forward, %d",
@@ -601,7 +609,9 @@ bool RouteOrch::addRoute(IpPrefix ipPrefix, IpAddresses nextHops)
         route_attr.value.oid = next_hop_id;
 
         /* Set the next hop ID to a new value */
+        SWSS_LOG_NOTICE("fast-reboot. set_route_attribute");
         status = sai_route_api->set_route_attribute(&route_entry, &route_attr);
+        SWSS_LOG_NOTICE("fast-reboot. end of set_route_attribute");
         if (status != SAI_STATUS_SUCCESS)
         {
             SWSS_LOG_ERROR("Failed to set route %s with next hop(s) %s",
@@ -643,7 +653,9 @@ bool RouteOrch::removeRoute(IpPrefix ipPrefix)
         attr.id = SAI_ROUTE_ATTR_PACKET_ACTION;
         attr.value.s32 = SAI_PACKET_ACTION_DROP;
 
+        SWSS_LOG_NOTICE("fast-reboot. set_route_attribute");
         sai_status_t status = sai_route_api->set_route_attribute(&route_entry, &attr);
+        SWSS_LOG_NOTICE("fast-reboot. end of set_route_attribute");
         if (status != SAI_STATUS_SUCCESS)
         {
             SWSS_LOG_ERROR("Failed to set route %s to drop", ipPrefix.to_string().c_str());
@@ -652,7 +664,9 @@ bool RouteOrch::removeRoute(IpPrefix ipPrefix)
     }
     else
     {
+        SWSS_LOG_NOTICE("fast-reboot. remove_route");
         sai_status_t status = sai_route_api->remove_route(&route_entry);
+        SWSS_LOG_NOTICE("fast-reboot. end of remove_route");
         if (status != SAI_STATUS_SUCCESS)
         {
             SWSS_LOG_ERROR("Failed to remove route prefix:%s\n", ipPrefix.to_string().c_str());

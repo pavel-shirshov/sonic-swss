@@ -11,6 +11,8 @@ using namespace swss;
 int main(int argc, char **argv)
 {
     Logger::linkToDbNative("neighsyncd");
+    SWSS_LOG_ENTER();
+    SWSS_LOG_NOTICE("fast-reboot. starting");
     DBConnector db(APPL_DB, DBConnector::DEFAULT_UNIXSOCKET, 0);
     NeighSync sync(&db);
 
@@ -29,6 +31,7 @@ int main(int argc, char **argv)
             netlink.dumpRequest(RTM_GETNEIGH);
 
             s.addSelectable(&netlink);
+            SWSS_LOG_NOTICE("fast-reboot. main loop");
             while (true)
             {
                 Selectable *temps;

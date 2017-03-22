@@ -106,17 +106,6 @@ void LinkSync::onMsg(int nlmsg_type, struct nl_object *obj)
     int master = rtnl_link_get_master(link);
     char *type = rtnl_link_get_type(link);
 
-    if (type)
-    {
-        SWSS_LOG_DEBUG("nlmsg type:%d key:%s admin:%d oper:%d addr:%s ifindex:%d master:%d type:%s",
-                       nlmsg_type, key.c_str(), admin, oper, addrStr, ifindex, master, type);
-    }
-    else
-    {
-        SWSS_LOG_DEBUG("nlmsg type:%d key:%s admin:%d oper:%d addr:%s ifindex:%d master:%d",
-                       nlmsg_type, key.c_str(), admin, oper, addrStr, ifindex, master);
-    }
-
     /* Insert or update the ifindex to key map */
     m_ifindexNameMap[ifindex] = key;
 
@@ -124,6 +113,17 @@ void LinkSync::onMsg(int nlmsg_type, struct nl_object *obj)
     if (type && !strcmp(type, TEAM_DRV_NAME))
     {
         return;
+    }
+
+    if (type)
+    {
+        SWSS_LOG_NOTICE("nlmsg type:%d key:%s admin:%d oper:%d addr:%s ifindex:%d master:%d type:%s",
+                       nlmsg_type, key.c_str(), admin, oper, addrStr, ifindex, master, type);
+    }
+    else
+    {
+        SWSS_LOG_NOTICE("nlmsg type:%d key:%s admin:%d oper:%d addr:%s ifindex:%d master:%d",
+                       nlmsg_type, key.c_str(), admin, oper, addrStr, ifindex, master);
     }
 
     /* VLAN member: A separate entry in VLAN_TABLE will be inserted */

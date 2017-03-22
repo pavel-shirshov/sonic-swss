@@ -17,6 +17,7 @@ void FdbOrch::update(sai_fdb_event_t type, const sai_fdb_entry_t* entry, sai_obj
     switch (type)
     {
     case SAI_FDB_EVENT_LEARNED:
+        SWSS_LOG_NOTICE("fast-reboot. SAI_FDB_EVENT_LEARNED");
         if (!m_portsOrch->getPort(portOid, update.port))
         {
             SWSS_LOG_ERROR("Failed to get port for %lu OID\n", portOid);
@@ -26,7 +27,9 @@ void FdbOrch::update(sai_fdb_event_t type, const sai_fdb_entry_t* entry, sai_obj
         update.add = true;
         break;
     case SAI_FDB_EVENT_AGED:
+        SWSS_LOG_NOTICE("fast-reboot. SAI_FDB_EVENT_AGED");
     case SAI_FDB_EVENT_FLUSHED:
+        SWSS_LOG_NOTICE("fast-reboot. SAI_FDB_EVENT_FLUSHED");
         update.add = false;
         break;
     }

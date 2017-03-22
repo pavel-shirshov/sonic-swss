@@ -222,6 +222,7 @@ bool IntfsOrch::addRouterIntfs(Port &port)
     }
     attrs.push_back(attr);
 
+    SWSS_LOG_NOTICE("fast-reboot. create_router_interface. port_type:%d, port_alias: %s", port.m_type, port.m_alias.c_str());
     sai_status_t status = sai_router_intfs_api->create_router_interface(&port.m_rif_id, attrs.size(), attrs.data());
     if (status != SAI_STATUS_SUCCESS)
     {
@@ -246,6 +247,7 @@ bool IntfsOrch::removeRouterIntfs(Port &port)
         return false;
     }
 
+    SWSS_LOG_NOTICE("fast-reboot. remove_router_interface: %s", port.m_alias.c_str());
     sai_status_t status = sai_router_intfs_api->remove_router_interface(port.m_rif_id);
     if (status != SAI_STATUS_SUCCESS)
     {
@@ -279,6 +281,7 @@ void IntfsOrch::addSubnetRoute(const Port &port, const IpPrefix &ip_prefix)
     attr.value.oid = port.m_rif_id;
     attrs.push_back(attr);
 
+    SWSS_LOG_NOTICE("fast-reboot. create_route: %s %s", ip_prefix.to_string().c_str(), port.m_alias.c_str());
     sai_status_t status = sai_route_api->create_route(&unicast_route_entry, attrs.size(), attrs.data());
     if (status != SAI_STATUS_SUCCESS)
     {
@@ -299,6 +302,7 @@ void IntfsOrch::removeSubnetRoute(const Port &port, const IpPrefix &ip_prefix)
     copy(unicast_route_entry.destination, ip_prefix);
     subnet(unicast_route_entry.destination, unicast_route_entry.destination);
 
+    SWSS_LOG_NOTICE("fast-reboot. remove_route: %s %s", ip_prefix.to_string().c_str(), port.m_alias.c_str());
     sai_status_t status = sai_route_api->remove_route(&unicast_route_entry);
     if (status != SAI_STATUS_SUCCESS)
     {
@@ -329,6 +333,7 @@ void IntfsOrch::addIp2MeRoute(const IpPrefix &ip_prefix)
     attr.value.oid = gPortsOrch->getCpuPort();
     attrs.push_back(attr);
 
+    SWSS_LOG_NOTICE("fast-reboot. create_route: %s me", ip_prefix.to_string().c_str());
     sai_status_t status = sai_route_api->create_route(&unicast_route_entry, attrs.size(), attrs.data());
     if (status != SAI_STATUS_SUCCESS)
     {
@@ -345,6 +350,7 @@ void IntfsOrch::removeIp2MeRoute(const IpPrefix &ip_prefix)
     unicast_route_entry.vr_id = gVirtualRouterId;
     copy(unicast_route_entry.destination, ip_prefix.getIp());
 
+    SWSS_LOG_NOTICE("fast-reboot. remove_route: %s me", ip_prefix.to_string().c_str());
     sai_status_t status = sai_route_api->remove_route(&unicast_route_entry);
     if (status != SAI_STATUS_SUCCESS)
     {

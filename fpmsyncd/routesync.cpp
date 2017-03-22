@@ -38,6 +38,8 @@ void RouteSync::onMsg(int nlmsg_type, struct nl_object *obj)
         return;
     }
 
+    SWSS_LOG_NOTICE("fast-reboot. onMsg. destipprefix:%s nlmsg_type: %d rtnl_route_get_type: %d", destipprefix, nlmsg_type, rtnl_route_get_type(route_obj));
+
     if (nlmsg_type == RTM_DELROUTE)
     {
         m_routeTable.del(destipprefix);

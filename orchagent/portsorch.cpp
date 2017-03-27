@@ -232,7 +232,7 @@ bool PortsOrch::setHostIntfsOperStatus(sai_object_id_t port_id, bool up)
             attr.id = SAI_HOSTIF_ATTR_OPER_STATUS;
             attr.value.booldata = up;
 
-            SWSS_LOG_NOTICE("fast-reboot. set_hostif_attribute. %s pid %lx", up ? "UP" : "DOWN", it->second.m_alias.c_str());
+            SWSS_LOG_NOTICE("fast-reboot. set_hostif_attribute. %s pid %s", up ? "UP" : "DOWN", it->second.m_alias.c_str());
             sai_status_t status = sai_hostif_api->set_hostif_attribute(it->second.m_hif_id, &attr);
             if (status != SAI_STATUS_SUCCESS)
             {

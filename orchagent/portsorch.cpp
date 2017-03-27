@@ -207,7 +207,7 @@ bool PortsOrch::setPortAdminStatus(sai_object_id_t id, bool up)
     attr.id = SAI_PORT_ATTR_ADMIN_STATE;
     attr.value.booldata = up;
 
-    SWSS_LOG_NOTICE("fast-reboot. set_port_attribute. %s %d", up ? "UP" : "DOWN", id);
+    SWSS_LOG_NOTICE("fast-reboot. set_port_attribute. %s pid %lx", up ? "UP" : "DOWN", id);
     sai_status_t status = sai_port_api->set_port_attribute(id, &attr);
     if (status != SAI_STATUS_SUCCESS)
     {
@@ -232,7 +232,7 @@ bool PortsOrch::setHostIntfsOperStatus(sai_object_id_t port_id, bool up)
             attr.id = SAI_HOSTIF_ATTR_OPER_STATUS;
             attr.value.booldata = up;
 
-            SWSS_LOG_NOTICE("fast-reboot. set_hostif_attribute. %s %d", up ? "UP" : "DOWN", it->second.m_alias.c_str());
+            SWSS_LOG_NOTICE("fast-reboot. set_hostif_attribute. %s pid %lx", up ? "UP" : "DOWN", it->second.m_alias.c_str());
             sai_status_t status = sai_hostif_api->set_hostif_attribute(it->second.m_hif_id, &attr);
             if (status != SAI_STATUS_SUCCESS)
             {
@@ -1010,9 +1010,9 @@ bool PortsOrch::addLagMember(Port lag, Port port)
     attrs.push_back(attr);
 
     sai_object_id_t lag_member_id;
-    SWSS_LOG_NOTICE("fast-reboot. create_lag_member %s %s", lag.m_alias.c_str());
+    SWSS_LOG_NOTICE("fast-reboot. create_lag_member %s %s", port.m_alias.c_str(), lag.m_alias.c_str());
     sai_status_t status = sai_lag_api->create_lag_member(&lag_member_id, attrs.size(), attrs.data());
-    SWSS_LOG_NOTICE("fast-reboot. end create_lag_member %s %s", lag.m_alias.c_str());
+    SWSS_LOG_NOTICE("fast-reboot. end create_lag_member %s %s", port.m_alias.c_str(), lag.m_alias.c_str());
 
     if (status != SAI_STATUS_SUCCESS)
     {

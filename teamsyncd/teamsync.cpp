@@ -36,7 +36,7 @@ void TeamSync::onMsg(int nlmsg_type, struct nl_object *obj)
 
     bool tracked = m_teamPorts.find(lagName) != m_teamPorts.end();
 
-    SWSS_LOG_NOTICE("fast-reboot. type: %s, lagName: %s nlmsg_type: %d", type, lagName, nlmsg_type);
+    SWSS_LOG_NOTICE("fast-reboot. type: %s, lagName: %s nlmsg_type: %d", type, lagName.c_str(), nlmsg_type);
 
     if ((nlmsg_type == RTM_DELLINK) && tracked)
     {

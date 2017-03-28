@@ -290,6 +290,7 @@ void PortsOrch::doPortTask(Consumer &consumer)
             if (!m_initDone)
             {
                 m_initDone = true;
+                SWSS_LOG_NOTICE("fast-reboot. ConfigDone notification from portsyncd.");
                 SWSS_LOG_INFO("Get ConfigDone notification from portsyncd.");
             }
 

@@ -8,7 +8,7 @@
 struct FdbEntry
 {
     MacAddress mac;
-    uint16_t vlan;
+    sai_vlan_id_t vlan;
 };
 
 struct FdbUpdate
@@ -18,19 +18,22 @@ struct FdbUpdate
     bool add;
 };
 
-class FdbOrch: public Subject
+class FdbOrch: public Orch, public Subject
 {
 public:
-    FdbOrch(PortsOrch *port) :
-        m_portsOrch(port)
-    {
-    }
+    FdbOrch(DBConnector *, string, PortsOrch *);
 
     void update(sai_fdb_event_t, const sai_fdb_entry_t *, sai_object_id_t);
     bool getPort(const MacAddress&, uint16_t, Port&);
 
 private:
     PortsOrch *m_portsOrch;
+    set<FdbEntry> m_entries;
+
+    void doTask(Consumer& consumer);
+    bool addFdbEntry(string&, string&, string&, string&);
+    bool removedbEntry(string&, string&);
+    bool splitKey(string&, string&, string&);
 };
 
 #endif /* SWSS_FDBORCH_H */

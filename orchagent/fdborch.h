@@ -9,6 +9,10 @@ struct FdbEntry
 {
     MacAddress mac;
     sai_vlan_id_t vlan;
+    bool operator<(const FdbEntry& other) const
+    {
+        return (mac < other.mac) && (vlan < other.vlan);
+    }
 };
 
 struct FdbUpdate
@@ -31,9 +35,10 @@ private:
     set<FdbEntry> m_entries;
 
     void doTask(Consumer& consumer);
-    bool addFdbEntry(string&, string&, string&, string&);
-    bool removedbEntry(string&, string&);
-    bool splitKey(string&, string&, string&);
+
+    bool addFdbEntry(const FdbEntry&, const string&, const string&);
+    bool removeFdbEntry(const FdbEntry&);
+    bool splitKey(const string&, FdbEntry&);
 };
 
 #endif /* SWSS_FDBORCH_H */

@@ -148,21 +148,21 @@ bool FdbOrch::addFdbEntry(const FdbEntry& entry, const string& port_name, const 
     {
         // FIXME: should we check that the entry are moving to another port?
         // FIXME: should we check that the entry are changing its type
-        SWSS_LOG_ERROR("FDB entry already exists. mac=%s vlan=%s\n", mac_address.to_string(), vlan);
+        SWSS_LOG_ERROR("FDB entry already exists. mac=%s vlan=%d\n", entry.mac.to_string().c_str(), entry.vlan);
         return true;
     }
 
     sai_status_t status;
 
     sai_fdb_entry_t fdb_entry;
-    memcpy(fdb_entry.mac_address, mac_address.getMac(), sizeof(sai_mac_t));
-    fdb_entry.vlan_id = vlan;
+    memcpy(fdb_entry.mac_address, entry.mac.getMac(), sizeof(sai_mac_t));
+    fdb_entry.vlan_id = entry.vlan;
 
     // Get port id
     Port port;
     if (!m_portsOrch->getPort(port_name, port))
     {
-        SWSS_LOG_ERROR("Failed to get port for %s\n", port_name);
+        SWSS_LOG_ERROR("Failed to get port for %s\n", port_name.c_str());
         return false;
     }
 
@@ -170,15 +170,15 @@ bool FdbOrch::addFdbEntry(const FdbEntry& entry, const string& port_name, const 
     vector<sai_attribute_t> attrs;
 
     attr.id = SAI_FDB_ENTRY_ATTR_TYPE;
-    attr.value. = (type == 'dynamic') ? SAI_FDB_ENTRY_DYNAMIC : SAI_FDB_ENTRY_STATIC;
+    attr.value.u8 = (type == "dynamic") ? SAI_FDB_ENTRY_DYNAMIC : SAI_FDB_ENTRY_STATIC; // FIXME: u8 is right here?
     attrs.push_back(attr);
 
     attr.id = SAI_FDB_ENTRY_ATTR_PORT_ID;
-    attr.value. = port.m_port_id;
+    attr.value.oid = port.m_port_id;
     attrs.push_back(attr);
 
     attr.id = SAI_FDB_ENTRY_ATTR_PACKET_ACTION;
-    attr.value. = SAI_PACKET_ACTION_FORWARD; // FIXME: what to use here?
+    attr.value.u8 = SAI_PACKET_ACTION_FORWARD; // FIXME: what to use here? what about u8 type?
     attrs.push_back(attr);
 
     status = sai_fdb_api->create_fdb_entry(&fdb_entry, attrs.size(), attrs.data());
@@ -188,18 +188,18 @@ bool FdbOrch::addFdbEntry(const FdbEntry& entry, const string& port_name, const 
         return false; // retry it
     }
 
-    (void)m_entries.insert(new_entry);
+    (void)m_entries.insert(entry);
 
     return true;
 }
 
-bool FdbOrch::removedbEntry(const FdbEntry& entry)
+bool FdbOrch::removeFdbEntry(const FdbEntry& entry)
 {
     SWSS_LOG_ENTER();
 
     if (m_entries.count(entry) == 0)
     {
-        SWSS_LOG_ERROR("FDB entry doesn't found. mac=%s vlan=%s\n", mac_address.to_string(), vlan);
+        SWSS_LOG_ERROR("FDB entry doesn't found. mac=%s vlan=%d\n", entry.mac.to_string().c_str(), entry.vlan);
         return true;
     }
 
@@ -207,8 +207,8 @@ bool FdbOrch::removedbEntry(const FdbEntry& entry)
 
     sai_status_t status;
     sai_fdb_entry_t fdb_entry;
-    memcpy(fdb_entry.mac_address, mac_address.getMac(), sizeof(sai_mac_t));
-    fdb_entry.vlan_id = vlan;
+    memcpy(fdb_entry.mac_address, entry.mac.getMac(), sizeof(sai_mac_t));
+    fdb_entry.vlan_id = entry.vlan;
 
     status = sai_fdb_api->remove_fdb_entry(&fdb_entry);
     if (status != SAI_STATUS_SUCCESS)
@@ -227,6 +227,7 @@ bool FdbOrch::splitKey(const string& key, FdbEntry& entry)
     SWSS_LOG_ENTER();
 
     string mac_address_str;
+    string vlan_str;
 
     size_t found = key.rfind(':');
     if (found == string::npos)
@@ -236,25 +237,26 @@ bool FdbOrch::splitKey(const string& key, FdbEntry& entry)
     }
 
     mac_address_str = key.substr(0, found);
-    vlan = key.substr(found + 1, string::npos); // FIXME: what if we have "macaddress:"
+    vlan_str = key.substr(found + 1, string::npos); // FIXME: what if we have "macaddress:"
 
     // check that mac_address is valid
-    if (mac_address.parseMacString(mac_address_str))
+    uint8_t mac_array[6];
+    if (MacAddress::parseMacString(mac_address_str, mac_array))
     {
         SWSS_LOG_ERROR("Failed to parse mac address: %s\n", mac_address_str.c_str());
         return false;
     }
+    MacAddress mac(mac_array);
 
     // check that vlan is available
     Port port;
-    if (!m_portsOrch->getPort(vlan, port))
+    if (!m_portsOrch->getPort(vlan_str, port))
     {
-        SWSS_LOG_ERROR("Failed to get port for %s\n", vlan);
+        SWSS_LOG_ERROR("Failed to get port for %s\n", vlan_str.c_str());
         return false;
     }
 
-    entry.mac = mac_address;
-    entry.vlan = stoi(vlan.substr(4)); // FIXME: create swss-common function to
+    entry.vlan = stoi(vlan_str.substr(4)); // FIXME: create swss-common function to
 
     return true;
 }

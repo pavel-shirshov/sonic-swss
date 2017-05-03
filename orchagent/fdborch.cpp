@@ -34,6 +34,7 @@ void FdbOrch::update(sai_fdb_event_t type, const sai_fdb_entry_t* entry, sai_obj
         update.add = true;
 
         (void)m_entries.insert(update.entry);
+        SWSS_LOG_INFO("update: Insert mac %s into vlan %d\n", entry->mac_address.to_string().c_str(), entry->vlan_id);
         break;
     case SAI_FDB_EVENT_AGED:
     case SAI_FDB_EVENT_FLUSHED:
@@ -41,6 +42,7 @@ void FdbOrch::update(sai_fdb_event_t type, const sai_fdb_entry_t* entry, sai_obj
         update.add = false;
 
         (void)m_entries.erase(update.entry);
+        SWSS_LOG_INFO("update: Remove mac %s into vlan %d\n", entry->mac_address.to_string().c_str(), entry->vlan_id);
         break;
     }
 
@@ -144,6 +146,8 @@ bool FdbOrch::addFdbEntry(const FdbEntry& entry, const string& port_name, const 
 {
     SWSS_LOG_ENTER();
 
+    SWSS_LOG_INFO("AddEntry. mac=%s, vlan=%d. port_name %s. type %s\n", entry.mac.to_string().c_str(), entry.vlan, port_name.c_str(), type.c_str());
+
     if (m_entries.count(entry) != 0) // we already have such entries
     {
         // FIXME: should we check that the entry are moving to another port?
@@ -196,6 +200,8 @@ bool FdbOrch::addFdbEntry(const FdbEntry& entry, const string& port_name, const 
 bool FdbOrch::removeFdbEntry(const FdbEntry& entry)
 {
     SWSS_LOG_ENTER();
+
+    SWSS_LOG_INFO("RemoveEntry. mac=%s, vlan=%d. port_name %s. type %s\n", entry.mac.to_string().c_str(), entry.vlan, port_name.c_str(), type.c_str());
 
     if (m_entries.count(entry) == 0)
     {

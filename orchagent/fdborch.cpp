@@ -12,6 +12,8 @@ FdbOrch::FdbOrch(DBConnector *db, string tableName, PortsOrch *port) :
         Orch(db, tableName),
         m_portsOrch(port)
 {
+    SWSS_LOG_ENTER();
+    SWSS_LOG_ERROR("FdbOrch started\n");
 }
 
 void FdbOrch::update(sai_fdb_event_t type, const sai_fdb_entry_t* entry, sai_object_id_t portOid)

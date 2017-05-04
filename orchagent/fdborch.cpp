@@ -159,6 +159,7 @@ bool FdbOrch::addFdbEntry(const FdbEntry& entry, const string& port_name, const 
     {
         // FIXME: should we check that the entry are moving to another port?
         // FIXME: should we check that the entry are changing its type
+        printEntries();
         SWSS_LOG_ERROR("FDB entry already exists. mac=%s vlan=%d\n", entry.mac.to_string().c_str(), entry.vlan);
         return true;
     }
@@ -275,4 +276,12 @@ bool FdbOrch::splitKey(const string& key, FdbEntry& entry)
     SWSS_LOG_ERROR("key is converted. mac: %s vlan: %d\n", entry.mac.to_string().c_str(), entry.vlan);
 
     return true;
+}
+
+void FdbOrch::printEntries()
+{
+  for(auto it: m_entries)
+  {
+    SWSS_LOG_ERROR("fdb entry. mac=%s vlan=%d\n", it->mac.to_string().c_str(), it->vlan);
+  }
 }

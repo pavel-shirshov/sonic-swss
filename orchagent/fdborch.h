@@ -39,6 +39,7 @@ private:
     bool addFdbEntry(const FdbEntry&, const string&, const string&);
     bool removeFdbEntry(const FdbEntry&);
     bool splitKey(const string&, FdbEntry&);
+    void printEntries();
 };
 
 #endif /* SWSS_FDBORCH_H */

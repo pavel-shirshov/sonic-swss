@@ -34,7 +34,7 @@ void FdbOrch::update(sai_fdb_event_t type, const sai_fdb_entry_t* entry, sai_obj
         update.add = true;
 
         (void)m_entries.insert(update.entry);
-        SWSS_LOG_INFO("update: Insert mac %s into vlan %d\n", update.entry.mac.to_string().c_str(), entry->vlan_id);
+        SWSS_LOG_ERROR("update: Insert mac %s into vlan %d\n", update.entry.mac.to_string().c_str(), entry->vlan_id);
         break;
     case SAI_FDB_EVENT_AGED:
     case SAI_FDB_EVENT_FLUSHED:
@@ -42,7 +42,7 @@ void FdbOrch::update(sai_fdb_event_t type, const sai_fdb_entry_t* entry, sai_obj
         update.add = false;
 
         (void)m_entries.erase(update.entry);
-        SWSS_LOG_INFO("update: Remove mac %s into vlan %d\n", update.entry.mac.to_string().c_str(), entry->vlan_id);
+        SWSS_LOG_ERROR("update: Remove mac %s into vlan %d\n", update.entry.mac.to_string().c_str(), entry->vlan_id);
         break;
     }
 
@@ -83,9 +83,12 @@ void FdbOrch::doTask(Consumer& consumer)
 {
     SWSS_LOG_ENTER();
 
+    SWSS_LOG_ERROR("FdbOrch::doTask started\n");
+
     auto it = consumer.m_toSync.begin();
     while (it != consumer.m_toSync.end())
     {
+        SWSS_LOG_ERROR("FdbOrch::doTask received msg\n");
         KeyOpFieldsValuesTuple t = it->second;
 
         string key = kfvKey(t);
@@ -115,12 +118,14 @@ void FdbOrch::doTask(Consumer& consumer)
             // check that type either static or dynamic
             if (type != "static" || type != "dynamic")
             {
+                SWSS_LOG_ERROR("FDB entry should have type 'static' or 'dynamic'\n");
                 it = consumer.m_toSync.erase(it);
                 continue;
             }
 
             // FIXME: check that port is available port
 
+            SWSS_LOG_ERROR("Adding entry\n");
             if (addFdbEntry(entry, port, type))
                 it = consumer.m_toSync.erase(it);
             else
@@ -235,6 +240,7 @@ bool FdbOrch::splitKey(const string& key, FdbEntry& entry)
     string mac_address_str;
     string vlan_str;
 
+    SWSS_LOG_ERROR("key=%s\n", key.c_str());
     size_t found = key.rfind(':');
     if (found == string::npos)
     {
@@ -247,7 +253,7 @@ bool FdbOrch::splitKey(const string& key, FdbEntry& entry)
 
     // check that mac_address is valid
     uint8_t mac_array[6];
-    if (MacAddress::parseMacString(mac_address_str, mac_array))
+    if (!MacAddress::parseMacString(mac_address_str, mac_array))
     {
         SWSS_LOG_ERROR("Failed to parse mac address: %s\n", mac_address_str.c_str());
         return false;
@@ -263,6 +269,8 @@ bool FdbOrch::splitKey(const string& key, FdbEntry& entry)
     }
 
     entry.vlan = stoi(vlan_str.substr(4)); // FIXME: create swss-common function to
+
+    SWSS_LOG_ERROR("key is converted\n");
 
     return true;
 }

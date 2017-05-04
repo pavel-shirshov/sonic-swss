@@ -68,7 +68,7 @@ bool FdbOrch::getPort(const MacAddress& mac, uint16_t vlan, Port& port)
     sai_status_t status = sai_fdb_api->get_fdb_entry_attribute(&entry, 1, &attr);
     if (status != SAI_STATUS_SUCCESS)
     {
-        SWSS_LOG_INFO("Failed to get port for FDB entry OID\n");
+        SWSS_LOG_ERROR("Failed to get port for FDB entry OID\n");
         return false;
     }
 
@@ -153,7 +153,7 @@ bool FdbOrch::addFdbEntry(const FdbEntry& entry, const string& port_name, const 
 {
     SWSS_LOG_ENTER();
 
-    SWSS_LOG_INFO("AddEntry. mac=%s, vlan=%d. port_name %s. type %s\n", entry.mac.to_string().c_str(), entry.vlan, port_name.c_str(), type.c_str());
+    SWSS_LOG_ERROR("AddEntry. mac=%s, vlan=%d. port_name %s. type %s\n", entry.mac.to_string().c_str(), entry.vlan, port_name.c_str(), type.c_str());
 
     if (m_entries.count(entry) != 0) // we already have such entries
     {
@@ -195,7 +195,7 @@ bool FdbOrch::addFdbEntry(const FdbEntry& entry, const string& port_name, const 
     status = sai_fdb_api->create_fdb_entry(&fdb_entry, attrs.size(), attrs.data());
     if (status != SAI_STATUS_SUCCESS)
     {
-        SWSS_LOG_INFO("Failed to remove FDB entry\n");
+        SWSS_LOG_ERROR("Failed to remove FDB entry\n");
         return false; // retry it
     }
 
@@ -208,7 +208,7 @@ bool FdbOrch::removeFdbEntry(const FdbEntry& entry)
 {
     SWSS_LOG_ENTER();
 
-    SWSS_LOG_INFO("RemoveEntry. mac=%s, vlan=%d\n", entry.mac.to_string().c_str(), entry.vlan);
+    SWSS_LOG_ERROR("RemoveEntry. mac=%s, vlan=%d\n", entry.mac.to_string().c_str(), entry.vlan);
 
     if (m_entries.count(entry) == 0)
     {
@@ -226,7 +226,7 @@ bool FdbOrch::removeFdbEntry(const FdbEntry& entry)
     status = sai_fdb_api->remove_fdb_entry(&fdb_entry);
     if (status != SAI_STATUS_SUCCESS)
     {
-        SWSS_LOG_INFO("Failed to remove FDB entry\n");
+        SWSS_LOG_ERROR("Failed to remove FDB entry\n");
         return false; // retry it
     }
 
@@ -260,7 +260,7 @@ bool FdbOrch::splitKey(const string& key, FdbEntry& entry)
         SWSS_LOG_ERROR("Failed to parse mac address: %s\n", mac_address_str.c_str());
         return false;
     }
-    MacAddress mac(mac_array);
+    entry.mac = MacAddress(mac_array);
 
     // check that vlan is available
     Port port;
@@ -272,7 +272,7 @@ bool FdbOrch::splitKey(const string& key, FdbEntry& entry)
 
     entry.vlan = stoi(vlan_str.substr(4)); // FIXME: create swss-common function to
 
-    SWSS_LOG_ERROR("key is converted\n");
+    SWSS_LOG_ERROR("key is converted. mac: %s vlan: %d\n", entry.mac.to_string().c_str(), entry.vlan);
 
     return true;
 }

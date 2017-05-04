@@ -120,7 +120,7 @@ void FdbOrch::doTask(Consumer& consumer)
             // check that type either static or dynamic
             if (type != "static" || type != "dynamic")
             {
-                SWSS_LOG_ERROR("FDB entry should have type 'static' or 'dynamic'\n");
+                SWSS_LOG_ERROR("FDB entry type is %s. FDB entry should have type 'static' or 'dynamic'\n", type.c_str());
                 it = consumer.m_toSync.erase(it);
                 continue;
             }

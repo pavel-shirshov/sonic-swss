@@ -23,7 +23,6 @@ void FdbOrch::update(sai_fdb_event_t type, const sai_fdb_entry_t* entry, sai_obj
             SWSS_LOG_ERROR("Failed to get port for %lu OID\n", portOid);
             return;
         }
-
         update.add = true;
 
         (void)m_entries.insert(update.entry);

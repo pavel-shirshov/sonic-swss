@@ -8,14 +8,6 @@
 
 extern sai_fdb_api_t *sai_fdb_api;
 
-FdbOrch::FdbOrch(DBConnector *db, string tableName, PortsOrch *port) :
-        Orch(db, tableName),
-        m_portsOrch(port)
-{
-    SWSS_LOG_ENTER();
-    SWSS_LOG_ERROR("FdbOrch started\n");
-}
-
 void FdbOrch::update(sai_fdb_event_t type, const sai_fdb_entry_t* entry, sai_object_id_t portOid)
 {
     SWSS_LOG_ENTER();
@@ -85,19 +77,16 @@ void FdbOrch::doTask(Consumer& consumer)
 {
     SWSS_LOG_ENTER();
 
-    SWSS_LOG_ERROR("FdbOrch::doTask started\n");
-
     auto it = consumer.m_toSync.begin();
     while (it != consumer.m_toSync.end())
     {
-        SWSS_LOG_ERROR("FdbOrch::doTask received msg\n");
         KeyOpFieldsValuesTuple t = it->second;
 
         string key = kfvKey(t);
         string op = kfvOp(t);
 
         FdbEntry entry;
-        if (!splitKey(key, entry)) // remove this entry from app_db. it's invalid
+        if (!splitKey(key, entry))
         {
             it = consumer.m_toSync.erase(it);
             continue;
@@ -107,27 +96,47 @@ void FdbOrch::doTask(Consumer& consumer)
         {
             string port;
             string type;
+            bool port_defined = false;
+            bool type_defined = false;
 
             for (auto i : kfvFieldsValues(t))
             {
                 if (fvField(i) == "port")
+                {
                     port = fvValue(i);
+                    port_defined = true;
+                }
 
                 if (fvField(i) == "type")
+                {
                     type = fvValue(i);
+                    type_defined = true;
+                }
+            }
+
+            if (!port_defined)
+            {
+                SWSS_LOG_ERROR("FDB entry with key:'%s' should have 'port' attribute\n", key.c_str());
+                it = consumer.m_toSync.erase(it);
+                continue;
+            }
+
+            if (!type_defined)
+            {
+                SWSS_LOG_ERROR("FDB entry with key:'%s' should have 'type' attribute\n", key.c_str());
+                it = consumer.m_toSync.erase(it);
+                continue;
             }
 
             // check that type either static or dynamic
             if (type != "static" && type != "dynamic")
             {
-                SWSS_LOG_ERROR("FDB entry type is %s. FDB entry should have type 'static' or 'dynamic'\n", type.c_str());
+                SWSS_LOG_ERROR("FDB entry with key: '%s' has type '%s'. But allowed only types: 'static' or 'dynamic'\n",
+                               key.c_str(), type.c_str());
                 it = consumer.m_toSync.erase(it);
                 continue;
             }
 
-            // FIXME: check that port is available port
-
-            SWSS_LOG_ERROR("Adding entry\n");
             if (addFdbEntry(entry, port, type))
                 it = consumer.m_toSync.erase(it);
             else
@@ -153,13 +162,13 @@ bool FdbOrch::addFdbEntry(const FdbEntry& entry, const string& port_name, const 
 {
     SWSS_LOG_ENTER();
 
-    SWSS_LOG_ERROR("AddEntry. mac=%s, vlan=%d. port_name %s. type %s\n", entry.mac.to_string().c_str(), entry.vlan, port_name.c_str(), type.c_str());
+    SWSS_LOG_DEBUG("mac=%s, vlan=%d. port_name %s. type %s\n",
+                   entry.mac.to_string().c_str(), entry.vlan, port_name.c_str(), type.c_str());
 
     if (m_entries.count(entry) != 0) // we already have such entries
     {
         // FIXME: should we check that the entry are moving to another port?
-        // FIXME: should we check that the entry are changing its type
-        printEntries();
+        // FIXME: should we check that the entry are changing its type?
         SWSS_LOG_ERROR("FDB entry already exists. mac=%s vlan=%d\n", entry.mac.to_string().c_str(), entry.vlan);
         return true;
     }
@@ -170,12 +179,11 @@ bool FdbOrch::addFdbEntry(const FdbEntry& entry, const string& port_name, const 
     memcpy(fdb_entry.mac_address, entry.mac.getMac(), sizeof(sai_mac_t));
     fdb_entry.vlan_id = entry.vlan;
 
-    // Get port id
     Port port;
     if (!m_portsOrch->getPort(port_name, port))
     {
-        SWSS_LOG_ERROR("Failed to get port for %s\n", port_name.c_str());
-        return false;
+        SWSS_LOG_ERROR("Failed to get port id for %s\n", port_name.c_str());
+        return true;
     }
 
     sai_attribute_t attr;
@@ -196,8 +204,9 @@ bool FdbOrch::addFdbEntry(const FdbEntry& entry, const string& port_name, const 
     status = sai_fdb_api->create_fdb_entry(&fdb_entry, attrs.size(), attrs.data());
     if (status != SAI_STATUS_SUCCESS)
     {
-        SWSS_LOG_ERROR("Failed to remove FDB entry\n");
-        return false; // retry it
+        SWSS_LOG_ERROR("Failed to add FDB entry. mac=%s, vlan=%d. port_name %s. type %s\n",
+                   entry.mac.to_string().c_str(), entry.vlan, port_name.c_str(), type.c_str());
+        return false; // FIXME: retry it? How many times?
     }
 
     (void)m_entries.insert(entry);
@@ -209,15 +218,13 @@ bool FdbOrch::removeFdbEntry(const FdbEntry& entry)
 {
     SWSS_LOG_ENTER();
 
-    SWSS_LOG_ERROR("RemoveEntry. mac=%s, vlan=%d\n", entry.mac.to_string().c_str(), entry.vlan);
+    SWSS_LOG_DEBUG("mac=%s, vlan=%d\n", entry.mac.to_string().c_str(), entry.vlan);
 
     if (m_entries.count(entry) == 0)
     {
-        SWSS_LOG_ERROR("FDB entry doesn't found. mac=%s vlan=%d\n", entry.mac.to_string().c_str(), entry.vlan);
+        SWSS_LOG_ERROR("FDB entry isn't found. mac=%s vlan=%d\n", entry.mac.to_string().c_str(), entry.vlan);
         return true;
     }
-
-    // FIXME: What if the entry was created by ASIC learning process Should we remove it?
 
     sai_status_t status;
     sai_fdb_entry_t fdb_entry;
@@ -227,8 +234,9 @@ bool FdbOrch::removeFdbEntry(const FdbEntry& entry)
     status = sai_fdb_api->remove_fdb_entry(&fdb_entry);
     if (status != SAI_STATUS_SUCCESS)
     {
-        SWSS_LOG_ERROR("Failed to remove FDB entry\n");
-        return false; // retry it
+        SWSS_LOG_ERROR("Failed to remove FDB entry. mac=%s, vlan=%d\n",
+                       entry.mac.to_string().c_str(), entry.vlan);
+        return false; // FIXME: retry it? How many times?
     }
 
     m_entries.erase(entry);
@@ -243,27 +251,30 @@ bool FdbOrch::splitKey(const string& key, FdbEntry& entry)
     string mac_address_str;
     string vlan_str;
 
-    SWSS_LOG_ERROR("key=%s\n", key.c_str());
     size_t found = key.rfind(':');
     if (found == string::npos)
     {
-        SWSS_LOG_ERROR("Failed to parse task key: %s\n", key.c_str());
+        SWSS_LOG_ERROR("Failed to parse key: %s\n", key.c_str());
         return false;
     }
 
     mac_address_str = key.substr(0, found);
     vlan_str = key.substr(found + 1, string::npos); // FIXME: what if we have "macaddress:"
-
-    // check that mac_address is valid
-    uint8_t mac_array[6];
-    if (!MacAddress::parseMacString(mac_address_str, mac_array))
+    if (vlan_str.length() <= 4) // "Vlan"
     {
-        SWSS_LOG_ERROR("Failed to parse mac address: %s\n", mac_address_str.c_str());
+        SWSS_LOG_ERROR("Failed to extract vlan interface name from the key: %s\n", key.c_str());
         return false;
     }
+
+    uint8_t mac_array[6];
+    if (!MacAddress::parseMacString(mac_address_str, mac_array)) // FIXME: parseMacString consider 52:54:00:25::E9 and 52:54:00:25:E9 as good one
+    {
+        SWSS_LOG_ERROR("Failed to parse mac address: %s in key: %s\n", mac_address_str.c_str(), key.c_str());
+        return false;
+    }
+
     entry.mac = MacAddress(mac_array);
 
-    // check that vlan is available
     Port port;
     if (!m_portsOrch->getPort(vlan_str, port))
     {
@@ -271,17 +282,8 @@ bool FdbOrch::splitKey(const string& key, FdbEntry& entry)
         return false;
     }
 
-    entry.vlan = stoi(vlan_str.substr(4)); // FIXME: create swss-common function to
-
-    SWSS_LOG_ERROR("key is converted. mac: %s vlan: %d\n", entry.mac.to_string().c_str(), entry.vlan);
+    entry.vlan = stoi(vlan_str.substr(4)); // FIXME: create swss-common function to extract vlan number from vlan name
+                                           // Currently this code could raise an exception
 
     return true;
-}
-
-void FdbOrch::printEntries()
-{
-  for(auto it: m_entries)
-  {
-    SWSS_LOG_ERROR("fdb entry. mac=%s vlan=%d\n", it->mac.to_string().c_str(), it->vlan);
-  }
 }

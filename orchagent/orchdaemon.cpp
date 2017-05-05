@@ -41,8 +41,6 @@ bool OrchDaemon::init()
     };
 
     gPortsOrch = new PortsOrch(m_applDb, ports_tables);
-// FIXME: remove me later
-#define APP_FDB_TABLE_NAME              "FDB_TABLE"
     gFdbOrch = new FdbOrch(m_applDb, APP_FDB_TABLE_NAME, gPortsOrch);
     IntfsOrch *intfs_orch = new IntfsOrch(m_applDb, APP_INTF_TABLE_NAME);
     NeighOrch *neigh_orch = new NeighOrch(m_applDb, APP_NEIGH_TABLE_NAME, intfs_orch);

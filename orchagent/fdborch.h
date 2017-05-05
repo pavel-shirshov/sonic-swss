@@ -25,11 +25,11 @@ struct FdbUpdate
 class FdbOrch: public Orch, public Subject
 {
 public:
-      FdbOrch(DBConnector *db, string tableName, PortsOrch *port) :
+    FdbOrch(DBConnector *db, string tableName, PortsOrch *port) :
         Orch(db, tableName),
         m_portsOrch(port)
-      {
-      }
+    {
+    }
 
     void update(sai_fdb_event_t, const sai_fdb_entry_t *, sai_object_id_t);
     bool getPort(const MacAddress&, uint16_t, Port&);

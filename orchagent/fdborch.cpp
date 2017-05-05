@@ -1,6 +1,5 @@
 #include <assert.h>
 #include <iostream>
-#include <tuple>
 #include <vector>
 
 #include "logger.h"
@@ -28,7 +27,7 @@ void FdbOrch::update(sai_fdb_event_t type, const sai_fdb_entry_t* entry, sai_obj
         update.add = true;
 
         (void)m_entries.insert(update.entry);
-        SWSS_LOG_ERROR("update: Insert mac %s into vlan %d\n", update.entry.mac.to_string().c_str(), entry->vlan_id);
+        SWSS_LOG_DEBUG("FdbOrch notification: mac %s was inserted into vlan %d\n", update.entry.mac.to_string().c_str(), entry->vlan_id);
         break;
     case SAI_FDB_EVENT_AGED:
     case SAI_FDB_EVENT_FLUSHED:
@@ -36,7 +35,7 @@ void FdbOrch::update(sai_fdb_event_t type, const sai_fdb_entry_t* entry, sai_obj
         update.add = false;
 
         (void)m_entries.erase(update.entry);
-        SWSS_LOG_ERROR("update: Remove mac %s into vlan %d\n", update.entry.mac.to_string().c_str(), entry->vlan_id);
+        SWSS_LOG_DEBUG("FdbOrch notification: mac %s was removed from vlan %d\n", update.entry.mac.to_string().c_str(), entry->vlan_id);
         break;
     }
 
@@ -239,7 +238,7 @@ bool FdbOrch::removeFdbEntry(const FdbEntry& entry)
         return false; // FIXME: retry it? How many times?
     }
 
-    m_entries.erase(entry);
+    (void)m_entries.erase(entry);
 
     return true;
 }

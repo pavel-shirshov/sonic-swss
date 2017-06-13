@@ -17,6 +17,7 @@
 #include "mirrororch.h"
 #include "fdborch.h"
 #include "aclorch.h"
+#include "newtunnelorch.h"
 
 using namespace swss;
 

@@ -51,7 +51,7 @@ bool OrchDaemon::init()
 
     VRouterOrch *vrouter_orch = new VRouterOrch(m_applDb, APP_VROUTER_TABLE_NAME);
     TunnelOrch *tunnel_orch = new TunnelOrch(m_applDb, APP_TUNNEL_TABLE_NAME, vrouter_orch);
-    VRouterRoutesOrch *vrouter_routes_orch = new VRouterRoutesOrch(m_applDb, APP_VROUTERROUTES_TABLE_NAME);
+    VRouterRoutesOrch *vrouter_routes_orch = new VRouterRoutesOrch(m_applDb, APP_VROUTERROUTES_TABLE_NAME, vrouter_orch);
 
     vector<string> qos_tables = {
         APP_TC_TO_QUEUE_MAP_TABLE_NAME,

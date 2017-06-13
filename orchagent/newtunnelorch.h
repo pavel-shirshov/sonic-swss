@@ -2,11 +2,13 @@
 #define SWSS_NEWTUNNELORCH_H
 
 #include <arpa/inet.h>
-#include <unordered_set>
+#include <set>
+#include <map>
 
 #include "orch.h"
 #include "sai.h"
 #include "ipaddress.h"
+#include "ipprefix.h"
 #include "ipaddresses.h"
 
 class VRouterOrch : public Orch
@@ -19,7 +21,7 @@ public:
 private:
     void doTask(Consumer& consumer);
 
-    unordered_set<string> m_vrfs;
+    set<string> m_vrfs;
 };
 
 class TunnelOrch : public Orch
@@ -27,10 +29,12 @@ class TunnelOrch : public Orch
 public:
     TunnelOrch(DBConnector *db, string tableName, VRouterOrch* vrouter_orch) : Orch(db, tableName), m_vrouter_orch(vrouter_orch) {};
 
+    bool isExist(const int vxlan_id) const;
+
 private:
     void doTask(Consumer& consumer);
 
-    unordered_map<unsigned int, string> m_vxlan_vrf_mapping;
+    map<unsigned int, string> m_vxlan_vrf_mapping;
     VRouterOrch* m_vrouter_orch;
 };
 
@@ -40,7 +44,7 @@ struct VxlanNexthop
 
     IpAddress ip;
     unsigned int vxlan_id;
-private:
+//private:
     VxlanNexthop() {};
 };
 
@@ -57,17 +61,19 @@ struct VRouterRoute
     }
 private:
     VRouterRoute() {};
-}
+};
 
 class VRouterRoutesOrch : public Orch
 {
 public:
-    TunnelOrch(DBConnector *db, string tableName, VRouterOrch* vrouter_orch) : Orch(db, tableName), m_vrouter_orch(vrouter_orch) {};
+    VRouterRoutesOrch(DBConnector *db, string tableName, VRouterOrch* vrouter_orch) : Orch(db, tableName), m_vrouter_orch(vrouter_orch) {};
+
+    bool isExist(const VRouterRoute& route) const;
 
 private:
     void doTask(Consumer& consumer);
 
-    unordered_map<VRouterRoute, VxlanNexthop> m_routing_table;
+    map<VRouterRoute, VxlanNexthop> m_routing_table;
     VRouterOrch* m_vrouter_orch;
 };
 

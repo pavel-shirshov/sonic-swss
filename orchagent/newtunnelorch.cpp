@@ -2,6 +2,7 @@
 #include "newtunnelorch.h"
 #include "logger.h"
 #include "swssnet.h"
+#include "tokenize.h"
 
 void VRouterOrch::doTask(Consumer& consumer)
 {
@@ -15,7 +16,7 @@ void VRouterOrch::doTask(Consumer& consumer)
         string key = kfvKey(t);
         string op = kfvOp(t);
 
-        auto key_elements = tokenize(key);
+        auto key_elements = tokenize(key, ':');
         //FIXME: check number of elements
         auto vrf_id = key_elements[1];
 
@@ -27,7 +28,7 @@ void VRouterOrch::doTask(Consumer& consumer)
             }
             else
             {
-                SWSS_LOG_ERROR("Cannot create vrf with vrf_id:'%s'. It exists already", vrf_id);
+                SWSS_LOG_ERROR("Cannot create vrf with vrf_id:'%s'. It exists already", vrf_id.c_str());
             }
         }
         else if (op == DEL_COMMAND)
@@ -38,7 +39,7 @@ void VRouterOrch::doTask(Consumer& consumer)
             }
             else
             {
-                SWSS_LOG_ERROR("Cannot remove vrf with vrf_id:'%s'. It doesn't exist", vrf_id);
+                SWSS_LOG_ERROR("Cannot remove vrf with vrf_id:'%s'. It doesn't exist", vrf_id.c_str());
             }
         }
 
@@ -63,13 +64,13 @@ void TunnelOrch::doTask(Consumer& consumer)
         string key = kfvKey(t);
         string op = kfvOp(t);
 
-        auto key_elements = tokenize(key);
+        auto key_elements = tokenize(key, ':');
         //FIXME: check number of elements
 
         auto direction = key_elements[1];
         if (direction != "encapsulation" || direction != "decapsulation")
         {
-            SWSS_LOG_ERROR("Invalid key: '%s'. Tunnel_table direction could be either 'encapsulation' or 'decapsulation'", key);
+            SWSS_LOG_ERROR("Invalid key: '%s'. Tunnel_table direction could be either 'encapsulation' or 'decapsulation'", key.c_str());
             it = consumer.m_toSync.erase(it);
             continue;
         }
@@ -77,14 +78,14 @@ void TunnelOrch::doTask(Consumer& consumer)
         auto type = key_elements[2];
         if (type != "vxlan")
         {
-            SWSS_LOG_ERROR("Invalid key: '%s'. Tunnel_table type could be 'vxlan' only", key);
+            SWSS_LOG_ERROR("Invalid key: '%s'. Tunnel_table type could be 'vxlan' only", key.c_str());
             it = consumer.m_toSync.erase(it);
             continue;
         }
 
-        if (direction == "encapsulation" && key_elements.size < 3)
+        if (direction == "encapsulation" && key_elements.size() < 3)
         {
-            SWSS_LOG_ERROR("Invalid key: '%s'. vxlan_id is required", key);
+            SWSS_LOG_ERROR("Invalid key: '%s'. vxlan_id is required", key.c_str());
             it = consumer.m_toSync.erase(it);
             continue;
         }
@@ -110,7 +111,7 @@ void TunnelOrch::doTask(Consumer& consumer)
                     else
                     {
                         // FIXME:
-                        SWSS_LOG_ERROR("Cannot create vrf with vrf_id:'%s'. It exists already", vrf_id);
+                        SWSS_LOG_ERROR("Cannot create vrf with vrf_id:'%s'. It exists already", vrf_id.c_str());
                     }
                     break;
                 }
@@ -124,7 +125,7 @@ void TunnelOrch::doTask(Consumer& consumer)
                 else
                 {
                     // FIXME:
-                    SWSS_LOG_ERROR("Cannot create vrf with vrf_id:'%s'. It exists already", vrf_id);
+                    SWSS_LOG_ERROR("Cannot create vrf with vrf_id:'%s'. It exists already", vrf_id.c_str());
                 }
             }
         }
@@ -141,7 +142,7 @@ void TunnelOrch::doTask(Consumer& consumer)
             else
             {
                 // FIXME:
-                SWSS_LOG_ERROR("Cannot create vrf with vrf_id:'%s'. It exists already", vrf_id);
+                SWSS_LOG_ERROR("Cannot create vrf with vrf_id:'%s'. It exists already", vrf_id.c_str());
             }
         }
 
@@ -154,7 +155,7 @@ bool TunnelOrch::isExist(const int vxlan_id) const
     return m_vxlan_vrf_mapping.find(vxlan_id) != m_vxlan_vrf_mapping.end();
 }
 
-void VRouterOrch::doTask(Consumer& consumer)
+void VRouterRoutesOrch::doTask(Consumer& consumer)
 {
     SWSS_LOG_ENTER();
 
@@ -166,7 +167,7 @@ void VRouterOrch::doTask(Consumer& consumer)
         string key = kfvKey(t);
         string op = kfvOp(t);
 
-        auto key_elements = tokenize(key);
+        auto key_elements = tokenize(key, ':');
         // FIXME: check the number of arguments
         auto vrf_id = key_elements[1];
         // FIXME: check that vrf_id exists
@@ -177,7 +178,7 @@ void VRouterOrch::doTask(Consumer& consumer)
         bool nexthop_type_defined = false;
         IpAddress nexthop;
         bool nexthop_defined = false;
-        unsigned int vxlan_id;
+        unsigned int vxlan_id = 0;
         bool vxlan_id_defined = false;
 
         if (op == SET_COMMAND)
@@ -189,7 +190,7 @@ void VRouterOrch::doTask(Consumer& consumer)
                     nexthop_type = fvValue(i);
                     if (nexthop_type != "vxlan")
                     {
-                        SWSS_LOG_ERROR("Invalid nexthop_type: '%s'. nexthop_type should be vxlan", nexthop_type);
+                        SWSS_LOG_ERROR("Invalid nexthop_type: '%s'. nexthop_type should be vxlan", nexthop_type.c_str());
                         break;
                     }
                     nexthop_type_defined = true;
@@ -210,11 +211,11 @@ void VRouterOrch::doTask(Consumer& consumer)
                 }
                 else
                 {
-                    SWSS_LOG_ERROR("Wrong attribute: '%s'", fvField(i));
+                    SWSS_LOG_ERROR("Wrong attribute: '%s'", fvField(i).c_str());
                     break;
                 }
             }
-            bool completed = nexthop_defined && nexthop_defined && vxlan_id_defined;
+            bool completed = nexthop_type_defined && nexthop_defined && vxlan_id_defined;
             if (completed)
             {
                 m_routing_table[VRouterRoute(vrf_id, ip_prefix)] = VxlanNexthop(vxlan_id, nexthop);
@@ -235,7 +236,7 @@ void VRouterOrch::doTask(Consumer& consumer)
             }
             else
             {
-                SWSS_LOG_ERROR("Virtual route: (%s: %s) doesn't exist", vrf_id.c_str(), )
+                SWSS_LOG_ERROR("Virtual route: (%s: %s) doesn't exist", vrf_id.c_str(), "FIXME");
             }
         }
 
@@ -243,7 +244,7 @@ void VRouterOrch::doTask(Consumer& consumer)
     }
 }
 
-VRouterRoutesOrch::isExist(const VRouterRoute& route) const
+bool VRouterRoutesOrch::isExist(const VRouterRoute& route) const
 {
     return m_routing_table.find(route) != m_routing_table.end();
 }

@@ -48,6 +48,12 @@ struct Consumer {
 typedef pair<string, Consumer> ConsumerMapPair;
 typedef map<string, Consumer> ConsumerMap;
 
+// FIXME: temporary
+#define APP_VROUTER_TABLE_NAME       "VROUTER_TABLE"
+#define APP_TUNNEL_TABLE_NAME        "TUNNEL_TABLE"
+#define APP_VROUTERROUTES_TABLE_NAME "VROUTER_ROUTES_TABLE"
+// FIXME: temporary
+
 typedef enum
 {
     success,

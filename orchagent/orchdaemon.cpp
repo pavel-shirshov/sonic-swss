@@ -49,6 +49,10 @@ bool OrchDaemon::init()
     CoppOrch  *copp_orch  = new CoppOrch(m_applDb, APP_COPP_TABLE_NAME);
     TunnelDecapOrch *tunnel_decap_orch = new TunnelDecapOrch(m_applDb, APP_TUNNEL_DECAP_TABLE_NAME);
 
+    VRouterOrch *vrouter_orch = new VRouterOrch(m_applDb, APP_VROUTER_TABLE_NAME);
+    TunnelOrch *tunnel_orch = new TunnelOrch(m_applDb, APP_TUNNEL_TABLE_NAME, vrouter_orch);
+    VRouterRoutesOrch *vrouter_routes_orch = new VRouterRoutesOrch(m_applDb, APP_VROUTERROUTES_TABLE_NAME);
+
     vector<string> qos_tables = {
         APP_TC_TO_QUEUE_MAP_TABLE_NAME,
         APP_SCHEDULER_TABLE_NAME,
@@ -80,7 +84,22 @@ bool OrchDaemon::init()
     };
     AclOrch *acl_orch = new AclOrch(m_applDb, acl_tables, gPortsOrch, mirror_orch, neigh_orch, route_orch);
 
-    m_orchList = { gPortsOrch, intfs_orch, neigh_orch, route_orch, copp_orch, tunnel_decap_orch, qos_orch, buffer_orch, mirror_orch, acl_orch, gFdbOrch};
+    m_orchList = {
+                   gPortsOrch,
+                   intfs_orch,
+                   neigh_orch,
+                   route_orch,
+                   copp_orch,
+                   tunnel_decap_orch,
+                   qos_orch,
+                   buffer_orch,
+                   mirror_orch,
+                   acl_orch,
+                   gFdbOrch,
+                   vrouter_orch,
+                   tunnel_orch,
+                   vrouter_routes_orch
+    };
     m_select = new Select();
 
     return true;

@@ -34,6 +34,7 @@ public:
                                                                                m_decapsulation_is_set(false) {};
 
     bool isExist(const int vxlan_id) const;
+    bool hasPair(const int vxlan_id, const string& vrf_id) const;
 
 private:
     void doTask(Consumer& consumer);
@@ -71,15 +72,23 @@ private:
 class VRouterRoutesOrch : public Orch
 {
 public:
-    VRouterRoutesOrch(DBConnector *db, string tableName, VRouterOrch* vrouter_orch) : Orch(db, tableName), m_vrouter_orch(vrouter_orch) {};
-
+    VRouterRoutesOrch(DBConnector *db, string tableName, VRouterOrch* vrouter_orch, IntfsOrch *intfs_orch, TunnelOrch* tunnel_orch) : Orch(db, tableName),
+                                                                                                             m_vrouter_orch(vrouter_orch),
+                                                                                                             m_intfs_orch(intfs_orch),
+                                                                                                             m_tunnel_orch {tunnel_orch};
     bool isExist(const VRouterRoute& route) const;
+    bool addVRoute(const VRouterRoute& route, const VxlanNexthop* vnexthop);
+    bool VRouterRoutesOrch::removeVRoute(const VRouterRoute& route);
 
 private:
     void doTask(Consumer& consumer);
 
+    bool checkVlanId(const VRouterRoute& route, const VxlanNexthop* vnexthop);
+
     map<VRouterRoute, VxlanNexthop> m_routing_table;
     VRouterOrch* m_vrouter_orch;
+    IntfsOrch *m_intfs_orch;
+    TunnelOrch* m_tunnel_orch;
 };
 
 #endif //SWSS_NEWTUNNELORCH_H

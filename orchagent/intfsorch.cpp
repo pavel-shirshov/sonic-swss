@@ -17,8 +17,8 @@ extern sai_route_api_t*             sai_route_api;
 
 extern PortsOrch *gPortsOrch;
 
-IntfsOrch::IntfsOrch(DBConnector *db, string tableName) :
-        Orch(db, tableName)
+IntfsOrch::IntfsOrch(DBConnector *db, string tableName, VRouterOrch *vrouter_orch) :
+        Orch(db, tableName), m_vrouter_orch(vrouter_orch), m_tunnel_orch(tunnel_orch)
 {
     SWSS_LOG_ENTER();
 }
@@ -60,6 +60,58 @@ void IntfsOrch::doTask(Consumer &consumer)
 
         vector<string> keys = tokenize(kfvKey(t), ':');
         string alias(keys[0]);
+        if (keys.size() == 1)
+        {
+            if (op == SET_COMMAND)
+            {
+                for (auto i : kfvFieldsValues(t))
+                {
+                    if (fvField(i) == "vrf_id")
+                    {
+                        string vrf_id = fvValue(i);
+                        unsigned short vlan_id = stoi(alias.substr(4)); // FIXME: might raise exception
+                        SWSS_LOG_ERROR("Found vrf_id: '%s' on interface '%s'", vrf_id.c_str(), alias.c_str());
+
+                        if (hasVlanIdbyVrf(vrf_id))
+                        {
+                            SWSS_LOG_ERROR("vrf_id %s is already configured to use vlan: %u", vrf_id.c_str(), m_vrf2vlan[vrf_id]);
+                            break;
+                        }
+
+                        if (m_vlan2vrf.find(vlan_id) != m_vlan2vrf.end())
+                        {
+                            SWSS_LOG_ERROR("vlan_id %u is already configured to use in vrf_id: %s", vlan_id, m_vlan2vrf[vlan_id].c_str());
+                            break;
+                        }
+
+                        m_vrf2vlan[vrf_id] = vlan_id;
+                        m_vlan2vrf[vlan_id] = vrf_id;
+                    }
+                    else
+                    {
+                        SWSS_LOG_ERROR("Wrong attribute: '%s'", fvField(i).c_str());
+                        break;
+                    }
+                }
+            }
+            else if (op == DEL_COMMAND)
+            {
+                unsigned short vlan_id = stoi(alias.substr(4)); // FIXME: might raise exception
+                if (m_vlan2vrf.find(vlan_id) == m_vlan2vrf.end())
+                {
+                    SWSS_LOG_ERROR("vlan_id %u wasn't configured", vlan_id);
+                    break;
+                }
+
+                string& vrf_id = m_vlan2vrf[vlan_id];
+                m_vrf2vlan.erase(vrf_id);
+                m_vlan2vrf.erase(vlan_id);
+            }
+
+            it = consumer.m_toSync.erase(it);
+            continue;
+        }
+
         IpPrefix ip_prefix(kfvKey(t).substr(kfvKey(t).find(':')+1));
 
         if (alias == "eth0" || alias == "docker0")
@@ -384,4 +436,14 @@ void IntfsOrch::removeIp2MeRoute(const IpPrefix &ip_prefix)
     }
 
     SWSS_LOG_NOTICE("Remove packet action trap route ip:%s", ip_prefix.getIp().to_string().c_str());
+}
+
+bool IntfsOrch::hasVlanIdbyVrf(const string& vrf_id) const
+{
+    return m_vrf2vlan.find(vrf_id) != m_vrf2vlan.end();
+}
+
+unsigned int IntfsOrch::getVlanIdbyVrf(const string& vrf_id) const
+{
+    return m_vrf2vlan.at(vrf_id);
 }

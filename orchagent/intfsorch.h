@@ -25,14 +25,21 @@ typedef map<string, IntfsEntry> IntfsTable;
 class IntfsOrch : public Orch
 {
 public:
-    IntfsOrch(DBConnector *db, string tableName);
+    IntfsOrch(DBConnector *db, string tableName, VRouterOrch *vrouter_orch, TunnelOrch *tunnel_orch);
 
     sai_object_id_t getRouterIntfsId(const string&);
 
     void increaseRouterIntfsRefCount(const string&);
     void decreaseRouterIntfsRefCount(const string&);
+    bool hasVlanIdbyVrf(const string& vrf_id) const;
+    unsigned int getVlanIdbyVrf(const string& vrf_id) const;
 private:
     IntfsTable m_syncdIntfses;
+    map<vrf_id, unsigned short> m_vrf2vlan;
+    map<unsigned short, vrf_id> m_vlan2vrf;
+    VRouterOrch *m_vrouter_orch;
+    TunnelOrch *m_tunnel_orch;
+
     void doTask(Consumer &consumer);
 
     int getRouterIntfsRefCount(const string&);

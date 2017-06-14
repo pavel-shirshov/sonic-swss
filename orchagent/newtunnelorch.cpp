@@ -188,7 +188,7 @@ void TunnelOrch::doTask(Consumer& consumer)
                     {
                         // FIXME: do the action
                         // REMOVE ME
-                        SWSS_LOG_ERROR("Doing action: set local local_termination_ip")
+                        SWSS_LOG_ERROR("Doing action: set local local_termination_ip");
                         // REMOVE ME
                         m_decapsulation_is_set = true;
                     }
@@ -212,9 +212,9 @@ void TunnelOrch::doTask(Consumer& consumer)
                 if (isExist(vxlan_id))
                 {
                     m_vxlan_vrf_mapping.erase(vxlan_id);
-                    m_vrouter_orch->decrRefCounter(vrf_id);
+                    m_vrouter_orch->decrRefCounter(m_vxlan_vrf_mapping[vxlan_id]);
                     // REMOVE ME
-                    SWSS_LOG_ERROR("Doing action: remove map between vxlan_id and vrf_id: %d - %s", vxlan_id, vrf_id.c_str());
+                    SWSS_LOG_ERROR("Doing action: remove map between vxlan_id and vrf_id: %d - %s", vxlan_id, m_vxlan_vrf_mapping[vxlan_id].c_str());
                     // REMOVE ME
                 }
                 else
@@ -229,7 +229,7 @@ void TunnelOrch::doTask(Consumer& consumer)
                 {
                     // FIXME: remove the entry
                     // REMOVE ME
-                    SWSS_LOG_ERROR("Doing action: remove local local_termination_ip")
+                    SWSS_LOG_ERROR("Doing action: remove local local_termination_ip");
                     // REMOVE ME
                     m_decapsulation_is_set = false;
                 }
@@ -239,11 +239,7 @@ void TunnelOrch::doTask(Consumer& consumer)
                     break;
                 }
             }
-            else
-            {
-                SWSS_LOG_ERROR("Cannot create vrf with vrf_id:'%s'. It exists already", vrf_id.c_str());
-            }
-        }
+       }
 
         it = consumer.m_toSync.erase(it);
     }

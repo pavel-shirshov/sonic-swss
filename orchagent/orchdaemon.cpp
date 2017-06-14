@@ -43,14 +43,13 @@ bool OrchDaemon::init()
 
     gPortsOrch = new PortsOrch(m_applDb, ports_tables);
     gFdbOrch = new FdbOrch(m_applDb, APP_FDB_TABLE_NAME, gPortsOrch);
+    VRouterOrch *vrouter_orch = new VRouterOrch(m_applDb, APP_VROUTER_TABLE_NAME);
+    TunnelOrch *tunnel_orch = new TunnelOrch(m_applDb, APP_TUNNEL_TABLE_NAME, vrouter_orch);
+    IntfsOrch *intfs_orch = new IntfsOrch(m_applDb, APP_INTF_TABLE_NAME, vrouter_orch, tunnel_orch);
     NeighOrch *neigh_orch = new NeighOrch(m_applDb, APP_NEIGH_TABLE_NAME, intfs_orch);
     RouteOrch *route_orch = new RouteOrch(m_applDb, APP_ROUTE_TABLE_NAME, neigh_orch);
     CoppOrch  *copp_orch  = new CoppOrch(m_applDb, APP_COPP_TABLE_NAME);
     TunnelDecapOrch *tunnel_decap_orch = new TunnelDecapOrch(m_applDb, APP_TUNNEL_DECAP_TABLE_NAME);
-
-    VRouterOrch *vrouter_orch = new VRouterOrch(m_applDb, APP_VROUTER_TABLE_NAME);
-    TunnelOrch *tunnel_orch = new TunnelOrch(m_applDb, APP_TUNNEL_TABLE_NAME, vrouter_orch);
-    IntfsOrch *intfs_orch = new IntfsOrch(m_applDb, APP_INTF_TABLE_NAME, vrouter_orch);
     VRouterRoutesOrch *vrouter_routes_orch = new VRouterRoutesOrch(m_applDb, APP_VROUTERROUTES_TABLE_NAME, vrouter_orch, intfs_orch, tunnel_orch);
 
     vector<string> qos_tables = {

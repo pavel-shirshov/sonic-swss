@@ -3,6 +3,7 @@
 
 #include "orch.h"
 #include "portsorch.h"
+#include "newtunnelorch.h"
 
 #include "ipaddresses.h"
 #include "ipprefix.h"
@@ -13,6 +14,9 @@
 
 extern sai_object_id_t gVirtualRouterId;
 extern MacAddress gMacAddress;
+
+class VRouterOrch;
+class TunnelOrch;
 
 struct IntfsEntry
 {
@@ -35,8 +39,8 @@ public:
     unsigned int getVlanIdbyVrf(const string& vrf_id) const;
 private:
     IntfsTable m_syncdIntfses;
-    map<vrf_id, unsigned short> m_vrf2vlan;
-    map<unsigned short, vrf_id> m_vlan2vrf;
+    map<string, unsigned short> m_vrf2vlan;
+    map<unsigned short, string> m_vlan2vrf;
     VRouterOrch *m_vrouter_orch;
     TunnelOrch *m_tunnel_orch;
 

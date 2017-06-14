@@ -403,33 +403,7 @@ bool VRouterRoutesOrch::isExist(const VRouterRoute& route) const
     return m_routing_table.find(route) != m_routing_table.end();
 }
 
-bool VRouterRoutesOrch::addVRoute(const VRouterRoute& route, const VxlanNexthop* vnexthop)
-{
-    if (checkVlanId(route, vnexthop))
-        return false;
-
-    unsigned short vlan_id = m_intfs_orch->getVlanIdbyVrf(route.vrf_id);
-
-    // need vlan -> vxlan -> nexthop
-    SWSS_LOG_ERROR("Sending add route vlan:ip_prefix (%u:%s) -> vxlan_id:ip_prefix: (%u:%s)",
-        vlan_id, route.prefix.to_string().c_str(),
-        vnexthop.vxlan_id, vnexthop.ip.to_string().c_str());
-}
-
-bool VRouterRoutesOrch::removeVRoute(const VRouterRoute& route)
-{
-    if (checkVlanId(route, vnexthop))
-        return false;
-
-    unsigned short vlan_id = m_intfs_orch->getVlanIdbyVrf(route.vrf_id);
-
-    // need vlan -> vxlan -> nexthop
-    SWSS_LOG_ERROR("Sending add route vlan:ip_prefix (%u:%s) -> vxlan_id:ip_prefix: (%u:%s)",
-        vlan_id, route.prefix.to_string().c_str(),
-        vnexthop.vxlan_id, vnexthop.ip.to_string().c_str());
-}
-
-bool VRouterOrch::checkVlanId(const VRouterRoute& route, const VxlanNexthop* vnexthop)
+bool VRouterRoutesOrch::addVRoute(const VRouterRoute& route, const VxlanNexthop& vnexthop)
 {
     // check that tunnetorch has vxlan_id:vrf_id pair
     if (!m_tunnel_orch->hasPair(vnexthop.vxlan_id, route.vrf_id))
@@ -439,11 +413,35 @@ bool VRouterOrch::checkVlanId(const VRouterRoute& route, const VxlanNexthop* vne
     }
 
     // get vlan_id for the rotue
-    if (!m_intfs_orch->hasVlanId(route.vrf_id))
+    if (!m_intfs_orch->hasVlanIdbyVrf(route.vrf_id))
     {
-        SWSS_LOG_ERROR("Vlan interface doesn't exist for vrf_id: '%s'", vrf_id.c_str());
+        SWSS_LOG_ERROR("Vlan interface doesn't exist for vrf_id: '%s'", route.vrf_id.c_str());
         return false;
     }
 
+    unsigned short vlan_id = m_intfs_orch->getVlanIdbyVrf(route.vrf_id);
+
+    SWSS_LOG_ERROR("Sending add route vlan:ip_prefix (%u:%s) -> vxlan_id:ip_prefix: (%u:%s)",
+        vlan_id, route.prefix.to_string().c_str(),
+        vnexthop.vxlan_id, vnexthop.ip.to_string().c_str());
+
     return true;
 }
+
+bool VRouterRoutesOrch::removeVRoute(const VRouterRoute& route)
+{
+    // get vlan_id for the rotue
+    if (!m_intfs_orch->hasVlanIdbyVrf(route.vrf_id))
+    {
+        SWSS_LOG_ERROR("Vlan interface doesn't exist for vrf_id: '%s'", route.vrf_id.c_str());
+        return false;
+    }
+
+    unsigned short vlan_id = m_intfs_orch->getVlanIdbyVrf(route.vrf_id);
+
+    SWSS_LOG_ERROR("Sending remove route vlan:ip_prefix (%u:%s)",
+        vlan_id, route.prefix.to_string().c_str());
+
+    return true;
+}
+

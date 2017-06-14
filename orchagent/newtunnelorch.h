@@ -5,11 +5,14 @@
 #include <set>
 #include <map>
 
+#include "intfsorch.h"
 #include "orch.h"
 #include "sai.h"
 #include "ipaddress.h"
 #include "ipprefix.h"
 #include "ipaddresses.h"
+
+class IntfsOrch;
 
 class VRouterOrch : public Orch
 {
@@ -75,15 +78,13 @@ public:
     VRouterRoutesOrch(DBConnector *db, string tableName, VRouterOrch* vrouter_orch, IntfsOrch *intfs_orch, TunnelOrch* tunnel_orch) : Orch(db, tableName),
                                                                                                              m_vrouter_orch(vrouter_orch),
                                                                                                              m_intfs_orch(intfs_orch),
-                                                                                                             m_tunnel_orch {tunnel_orch};
+                                                                                                             m_tunnel_orch(tunnel_orch) {};
     bool isExist(const VRouterRoute& route) const;
-    bool addVRoute(const VRouterRoute& route, const VxlanNexthop* vnexthop);
-    bool VRouterRoutesOrch::removeVRoute(const VRouterRoute& route);
+    bool addVRoute(const VRouterRoute& route, const VxlanNexthop& vnexthop);
+    bool removeVRoute(const VRouterRoute& route);
 
 private:
     void doTask(Consumer& consumer);
-
-    bool checkVlanId(const VRouterRoute& route, const VxlanNexthop* vnexthop);
 
     map<VRouterRoute, VxlanNexthop> m_routing_table;
     VRouterOrch* m_vrouter_orch;

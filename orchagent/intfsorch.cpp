@@ -17,7 +17,7 @@ extern sai_route_api_t*             sai_route_api;
 
 extern PortsOrch *gPortsOrch;
 
-IntfsOrch::IntfsOrch(DBConnector *db, string tableName, VRouterOrch *vrouter_orch) :
+IntfsOrch::IntfsOrch(DBConnector *db, string tableName, VRouterOrch *vrouter_orch, TunnelOrch* tunnel_orch) :
         Orch(db, tableName), m_vrouter_orch(vrouter_orch), m_tunnel_orch(tunnel_orch)
 {
     SWSS_LOG_ENTER();
@@ -60,6 +60,9 @@ void IntfsOrch::doTask(Consumer &consumer)
 
         vector<string> keys = tokenize(kfvKey(t), ':');
         string alias(keys[0]);
+
+        string op = kfvOp(t);
+
         if (keys.size() == 1)
         {
             if (op == SET_COMMAND)
@@ -120,7 +123,6 @@ void IntfsOrch::doTask(Consumer &consumer)
             continue;
         }
 
-        string op = kfvOp(t);
         if (op == SET_COMMAND)
         {
             if (alias == "lo")

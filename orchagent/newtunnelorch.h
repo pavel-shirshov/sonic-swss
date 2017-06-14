@@ -17,17 +17,21 @@ public:
     VRouterOrch(DBConnector *db, string tableName) : Orch(db, tableName) {};
 
     bool isExist(const string& vrf_id) const;
+    void incrRefCounter(const string& vrf_id);
+    void decrRefCounter(const string& vrf_id);
 
 private:
     void doTask(Consumer& consumer);
 
-    set<string> m_vrfs;
+    map<string, unsigned int> m_vrfs;
 };
 
 class TunnelOrch : public Orch
 {
 public:
-    TunnelOrch(DBConnector *db, string tableName, VRouterOrch* vrouter_orch) : Orch(db, tableName), m_vrouter_orch(vrouter_orch) {};
+    TunnelOrch(DBConnector *db, string tableName, VRouterOrch* vrouter_orch) : Orch(db, tableName),
+                                                                               m_vrouter_orch(vrouter_orch),
+                                                                               m_decapsulation_is_set(false) {};
 
     bool isExist(const int vxlan_id) const;
 
@@ -36,6 +40,7 @@ private:
 
     map<unsigned int, string> m_vxlan_vrf_mapping;
     VRouterOrch* m_vrouter_orch;
+    bool m_decapsulation_is_set;
 };
 
 struct VxlanNexthop

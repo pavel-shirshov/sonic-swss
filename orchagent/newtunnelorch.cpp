@@ -4,6 +4,9 @@
 #include "swssnet.h"
 #include "tokenize.h"
 
+// TODO:
+// 1. split the file into individual classes
+
 void VRouterOrch::doTask(Consumer& consumer)
 {
     SWSS_LOG_ENTER();
@@ -161,6 +164,7 @@ void TunnelOrch::doTask(Consumer& consumer)
                     if (!isExist(vxlan_id))
                     {
                         m_vxlan_vrf_mapping[vxlan_id] = vrf_id;
+                        m_refcounters[vxlan_id] = 0;
                         m_vrouter_orch->incrRefCounter(vrf_id);
                         // REMOVE ME
                         SWSS_LOG_ERROR("Doing action: set map between vxlan_id and vrf_id: %d - %s", vxlan_id, vrf_id.c_str());
@@ -190,7 +194,6 @@ void TunnelOrch::doTask(Consumer& consumer)
 
                     if (!m_decapsulation_is_set)
                     {
-                        // FIXME: do the action
                         // REMOVE ME
                         SWSS_LOG_ERROR("Doing action: set local local_termination_ip: %s", local_termination_ip_str.c_str());
                         // REMOVE ME
@@ -216,11 +219,19 @@ void TunnelOrch::doTask(Consumer& consumer)
                 if (isExist(vxlan_id))
                 {
                     string vrf_id = m_vxlan_vrf_mapping[vxlan_id];
-                    m_vrouter_orch->decrRefCounter(vrf_id);
-                    m_vxlan_vrf_mapping.erase(vxlan_id);
-                    // REMOVE ME
-                    SWSS_LOG_ERROR("Doing action: remove map between vxlan_id and vrf_id: %d - %s", vxlan_id, vrf_id.c_str());
-                    // REMOVE ME
+                    if (m_refcounters[vxlan_id] == 0)
+                    {
+                        m_vrouter_orch->decrRefCounter(vrf_id);
+                        m_vxlan_vrf_mapping.erase(vxlan_id);
+                        // REMOVE ME
+                        SWSS_LOG_ERROR("Doing action: remove map between vxlan_id and vrf_id: %d - %s", vxlan_id, vrf_id.c_str());
+                        // REMOVE ME
+                    }
+                    else
+                    {
+                        SWSS_LOG_ERROR("Can't remove a tunnel (%u:%s), ref_counter is not zero: %d", vxlan_id, vrf_id.c_str(), m_refcounters[vxlan_id]);
+                        break;
+                    }
                 }
                 else
                 {
@@ -250,17 +261,33 @@ void TunnelOrch::doTask(Consumer& consumer)
     }
 }
 
-bool TunnelOrch::isExist(const int vxlan_id) const
+bool TunnelOrch::isExist(const unsigned int vxlan_id) const
 {
     return m_vxlan_vrf_mapping.find(vxlan_id) != m_vxlan_vrf_mapping.end();
 }
 
-bool TunnelOrch::hasPair(const int vxlan_id, const string& vrf_id) const
+bool TunnelOrch::hasPair(const unsigned int vxlan_id, const string& vrf_id) const
 {
     if (!isExist(vxlan_id))
         return false;
 
     return m_vxlan_vrf_mapping.at(vxlan_id) == vrf_id;
+}
+
+void TunnelOrch::incrRefCounter(const unsigned int vxlan_id)
+{
+    if (isExist(vxlan_id))
+    {
+        m_refcounters[vxlan_id]++;
+    }
+}
+
+void TunnelOrch::decrRefCounter(const unsigned int vxlan_id)
+{
+    if (isExist(vxlan_id))
+    {
+        m_refcounters[vxlan_id]--;
+    }
 }
 
 void VRouterRoutesOrch::doTask(Consumer& consumer)
@@ -284,7 +311,7 @@ void VRouterRoutesOrch::doTask(Consumer& consumer)
         }
 
         auto vrf_id = key_elements[0];
-        if (m_vrouter_orch->isExist(vrf_id))
+        if (!m_vrouter_orch->isExist(vrf_id))
         {
             SWSS_LOG_ERROR("vrf_id '%s' is not presented", vrf_id.c_str());
             it = consumer.m_toSync.erase(it);
@@ -365,7 +392,8 @@ void VRouterRoutesOrch::doTask(Consumer& consumer)
                     // FIXME: install route to SAI
                     addVRoute(vroute, vnexthop);
                     // REMOVE ME
-                    SWSS_LOG_ERROR("Doing action: add routing (%s,%s) -> (%d,%s)", vrf_id.c_str(), ip_prefix_str.c_str(), vxlan_id, nexthop.to_string().c_str());
+                    SWSS_LOG_ERROR("Doing action: add routing (%s,%s) -> (%d,%s)",
+                        vrf_id.c_str(), ip_prefix_str.c_str(), vxlan_id, nexthop.to_string().c_str());
                     // REMOVE ME
 
                 }
@@ -425,9 +453,12 @@ bool VRouterRoutesOrch::addVRoute(const VRouterRoute& route, const VxlanNexthop&
 
     unsigned short vlan_id = m_intfs_orch->getVlanIdbyVrf(route.vrf_id);
 
-    SWSS_LOG_ERROR("Sending add route vlan:ip_prefix (%u:%s) -> vxlan_id:ip_prefix: (%u:%s)",
-        vlan_id, route.prefix.to_string().c_str(),
-        vnexthop.vxlan_id, vnexthop.ip.to_string().c_str());
+    m_tunnel_orch->incrRefCounter(vnexthop.vxlan_id);
+
+// REMOVE ME
+    SWSS_LOG_ERROR("Doing: Sending add route vlan:ip_prefix (%u:%s) -> vxlan_id:ip_prefix: (%u:%s)",
+        vlan_id, route.prefix.to_string().c_str(), vnexthop.vxlan_id, vnexthop.ip.to_string().c_str());
+// REMOVE ME
 
     return true;
 }
@@ -443,8 +474,12 @@ bool VRouterRoutesOrch::removeVRoute(const VRouterRoute& route)
 
     unsigned short vlan_id = m_intfs_orch->getVlanIdbyVrf(route.vrf_id);
 
-    SWSS_LOG_ERROR("Sending remove route vlan:ip_prefix (%u:%s)",
+    m_tunnel_orch->decrRefCounter(m_routing_table[route].vxlan_id);
+
+// REMOVE ME
+    SWSS_LOG_ERROR("Doing: Sending remove route vlan:ip_prefix (%u:%s)",
         vlan_id, route.prefix.to_string().c_str());
+// REMOVE ME
 
     return true;
 }

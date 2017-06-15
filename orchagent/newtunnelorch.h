@@ -36,13 +36,16 @@ public:
                                                                                m_vrouter_orch(vrouter_orch),
                                                                                m_decapsulation_is_set(false) {};
 
-    bool isExist(const int vxlan_id) const;
-    bool hasPair(const int vxlan_id, const string& vrf_id) const;
+    bool isExist(const unsigned int vxlan_id) const;
+    bool hasPair(const unsigned int vxlan_id, const string& vrf_id) const;
 
+    void incrRefCounter(const unsigned int vxlan_id);
+    void decrRefCounter(const unsigned int vxlan_id);
 private:
     void doTask(Consumer& consumer);
 
     map<unsigned int, string> m_vxlan_vrf_mapping;
+    map<unsigned int, unsigned int> m_refcounters;
     VRouterOrch* m_vrouter_orch;
     bool m_decapsulation_is_set;
 };

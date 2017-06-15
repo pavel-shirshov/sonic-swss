@@ -60,7 +60,6 @@ void IntfsOrch::doTask(Consumer &consumer)
 
         vector<string> keys = tokenize(kfvKey(t), ':');
         string alias(keys[0]);
-
         IpPrefix ip_prefix(kfvKey(t).substr(kfvKey(t).find(':')+1));
 
         if (alias == "eth0" || alias == "docker0")
@@ -70,13 +69,12 @@ void IntfsOrch::doTask(Consumer &consumer)
         }
 
         string op = kfvOp(t);
-
         if (op == SET_COMMAND)
         {
             bool next = false;
             for (auto i : kfvFieldsValues(t))
             {
-                if (alias.substr(4) == "Vlan" && fvField(i) == "vrf_id")
+                if (alias.size() > 4 && alias.substr(0, 4) == "Vlan" && fvField(i) == "vrf_id")
                 {
                     string vrf_id = fvValue(i);
                     unsigned short vlan_id = stoi(alias.substr(4)); // FIXME: might raise exception
@@ -95,8 +93,9 @@ void IntfsOrch::doTask(Consumer &consumer)
 
                     m_vrf2vlan[vrf_id] = vlan_id;
                     m_vlan2vrf[vlan_id] = vrf_id;
-
-                    SWSS_LOG_ERROR("Found vrf_id: '%s' on interface '%s'. IpAddress: %s", vrf_id.c_str(), alias.c_str(), ip_prefix.to_string().c_str());
+// REMOVE ME
+                    SWSS_LOG_ERROR("Doing action: Found vrf_id: '%s' on interface '%s'. IpAddress: %s", vrf_id.c_str(), alias.c_str(), ip_prefix.to_string().c_str());
+// REMOVE ME
                     next = true;
                     break;
                 }
@@ -182,7 +181,7 @@ void IntfsOrch::doTask(Consumer &consumer)
         }
         else if (op == DEL_COMMAND)
         {
-             if (alias.substr(4) == "Vlan")
+             if (alias.substr(0, 4) == "Vlan")
              {
                 unsigned short vlan_id = stoi(alias.substr(4)); // FIXME: might raise exception
                 if (m_vlan2vrf.find(vlan_id) != m_vlan2vrf.end())
@@ -190,6 +189,9 @@ void IntfsOrch::doTask(Consumer &consumer)
                     string& vrf_id = m_vlan2vrf[vlan_id];
                     m_vrf2vlan.erase(vrf_id);
                     m_vlan2vrf.erase(vlan_id);
+// REMOVE ME
+                    SWSS_LOG_ERROR("Doing action: Removed %s interface", alias.c_str());
+// REMOVE ME
                     it = consumer.m_toSync.erase(it);
                     continue;
                 } // FIXME: else we're not sure here

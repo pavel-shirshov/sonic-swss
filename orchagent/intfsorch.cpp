@@ -61,60 +61,6 @@ void IntfsOrch::doTask(Consumer &consumer)
         vector<string> keys = tokenize(kfvKey(t), ':');
         string alias(keys[0]);
 
-        string op = kfvOp(t);
-
-        if (keys.size() == 1)
-        {
-            if (op == SET_COMMAND)
-            {
-                for (auto i : kfvFieldsValues(t))
-                {
-                    if (fvField(i) == "vrf_id")
-                    {
-                        string vrf_id = fvValue(i);
-                        unsigned short vlan_id = stoi(alias.substr(4)); // FIXME: might raise exception
-                        SWSS_LOG_ERROR("Found vrf_id: '%s' on interface '%s'", vrf_id.c_str(), alias.c_str());
-
-                        if (hasVlanIdbyVrf(vrf_id))
-                        {
-                            SWSS_LOG_ERROR("vrf_id %s is already configured to use vlan: %u", vrf_id.c_str(), m_vrf2vlan[vrf_id]);
-                            break;
-                        }
-
-                        if (m_vlan2vrf.find(vlan_id) != m_vlan2vrf.end())
-                        {
-                            SWSS_LOG_ERROR("vlan_id %u is already configured to use in vrf_id: %s", vlan_id, m_vlan2vrf[vlan_id].c_str());
-                            break;
-                        }
-
-                        m_vrf2vlan[vrf_id] = vlan_id;
-                        m_vlan2vrf[vlan_id] = vrf_id;
-                    }
-                    else
-                    {
-                        SWSS_LOG_ERROR("Wrong attribute: '%s'", fvField(i).c_str());
-                        break;
-                    }
-                }
-            }
-            else if (op == DEL_COMMAND)
-            {
-                unsigned short vlan_id = stoi(alias.substr(4)); // FIXME: might raise exception
-                if (m_vlan2vrf.find(vlan_id) == m_vlan2vrf.end())
-                {
-                    SWSS_LOG_ERROR("vlan_id %u wasn't configured", vlan_id);
-                    break;
-                }
-
-                string& vrf_id = m_vlan2vrf[vlan_id];
-                m_vrf2vlan.erase(vrf_id);
-                m_vlan2vrf.erase(vlan_id);
-            }
-
-            it = consumer.m_toSync.erase(it);
-            continue;
-        }
-
         IpPrefix ip_prefix(kfvKey(t).substr(kfvKey(t).find(':')+1));
 
         if (alias == "eth0" || alias == "docker0")
@@ -123,8 +69,45 @@ void IntfsOrch::doTask(Consumer &consumer)
             continue;
         }
 
+        string op = kfvOp(t);
+
         if (op == SET_COMMAND)
         {
+            bool next = false;
+            for (auto i : kfvFieldsValues(t))
+            {
+                if (alias.substr(4) == "Vlan" && fvField(i) == "vrf_id")
+                {
+                    string vrf_id = fvValue(i);
+                    unsigned short vlan_id = stoi(alias.substr(4)); // FIXME: might raise exception
+
+                    if (hasVlanIdbyVrf(vrf_id))
+                    {
+                        SWSS_LOG_ERROR("vrf_id %s is already configured to use vlan: %u", vrf_id.c_str(), m_vrf2vlan[vrf_id]);
+                        break;
+                    }
+
+                    if (m_vlan2vrf.find(vlan_id) != m_vlan2vrf.end())
+                    {
+                        SWSS_LOG_ERROR("vlan_id %u is already configured to use in vrf_id: %s", vlan_id, m_vlan2vrf[vlan_id].c_str());
+                        break;
+                    }
+
+                    m_vrf2vlan[vrf_id] = vlan_id;
+                    m_vlan2vrf[vlan_id] = vrf_id;
+
+                    SWSS_LOG_ERROR("Found vrf_id: '%s' on interface '%s'. IpAddress: %s", vrf_id.c_str(), alias.c_str(), ip_prefix.to_string().c_str());
+                    next = true;
+                    break;
+                }
+            }
+
+            if (next)
+            {
+                it = consumer.m_toSync.erase(it);
+                continue;
+            }
+
             if (alias == "lo")
             {
                 addIp2MeRoute(ip_prefix);
@@ -199,6 +182,19 @@ void IntfsOrch::doTask(Consumer &consumer)
         }
         else if (op == DEL_COMMAND)
         {
+             if (alias.substr(4) == "Vlan")
+             {
+                unsigned short vlan_id = stoi(alias.substr(4)); // FIXME: might raise exception
+                if (m_vlan2vrf.find(vlan_id) != m_vlan2vrf.end())
+                {
+                    string& vrf_id = m_vlan2vrf[vlan_id];
+                    m_vrf2vlan.erase(vrf_id);
+                    m_vlan2vrf.erase(vlan_id);
+                    it = consumer.m_toSync.erase(it);
+                    continue;
+                } // FIXME: else we're not sure here
+            }
+
             if (alias == "lo")
             {
                 removeIp2MeRoute(ip_prefix);

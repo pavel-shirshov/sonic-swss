@@ -18,20 +18,20 @@ void VRouterOrch::doTask(Consumer& consumer)
 
         auto key_elements = tokenize(key, ':');
 
-        if (key_elements.size() == 1)
+        if (key_elements.size() == 0)
         {
-            SWSS_LOG_ERROR("Invalid key: '%s'. No vrf_id", key.c_str());
+            SWSS_LOG_ERROR("Invalid key. No vrf_id");
             it = consumer.m_toSync.erase(it);
             continue;
         }
-        if (key_elements.size() > 2)
+        if (key_elements.size() > 1)
         {
             SWSS_LOG_ERROR("Invalid key: '%s'. Invalid vrf_id. ':' is not allowed in vrf_id", key.c_str());
             it = consumer.m_toSync.erase(it);
             continue;
         }
 
-        auto vrf_id = key_elements[1];
+        auto vrf_id = key_elements[0];
 
         if (op == SET_COMMAND)
         {
@@ -107,14 +107,14 @@ void TunnelOrch::doTask(Consumer& consumer)
         auto op = kfvOp(t);
 
         auto key_elements = tokenize(key, ':');
-        if (key_elements.size() < 3)
+        if (key_elements.size() < 2)
         {
             SWSS_LOG_ERROR("Invalid key: '%s'. It must contain encapsulation direction and tunnel type", key.c_str());
             it = consumer.m_toSync.erase(it);
             continue;
         }
 
-        auto direction = key_elements[1];
+        auto direction = key_elements[0];
         if (direction != "encapsulation" && direction != "decapsulation")
         {
             SWSS_LOG_ERROR("Invalid key: '%s'. Tunnel_table direction must be either 'encapsulation' or 'decapsulation'", key.c_str());
@@ -122,7 +122,7 @@ void TunnelOrch::doTask(Consumer& consumer)
             continue;
         }
 
-        auto type = key_elements[2];
+        auto type = key_elements[1];
         if (type != "vxlan")
         {
             SWSS_LOG_ERROR("Invalid key: '%s'. Tunnel_table type must be 'vxlan'", key.c_str());
@@ -130,16 +130,20 @@ void TunnelOrch::doTask(Consumer& consumer)
             continue;
         }
 
-        if (direction == "encapsulation" && key_elements.size() < 4)
+        if (direction == "encapsulation" && key_elements.size() < 3)
         {
             SWSS_LOG_ERROR("Invalid key: '%s'. vxlan_id is required", key.c_str());
             it = consumer.m_toSync.erase(it);
             continue;
         }
 
-        auto vxlan_id_str = key_elements[3];
-        // FIXME: check that vxlan_id is a number
-        auto vxlan_id = stoi(vxlan_id_str);
+        unsigned int vxlan_id = 0;
+        if (direction == "encapsulation")
+        {
+            auto vxlan_id_str = key_elements[2];
+            // FIXME: check that vxlan_id is a number
+            vxlan_id = stoi(vxlan_id_str);
+        }
 
         if (op == SET_COMMAND)
         {
@@ -176,11 +180,11 @@ void TunnelOrch::doTask(Consumer& consumer)
 
                     try
                     {
-                        local_termination_ip = IpAddress(local_termination_ip);
+                        local_termination_ip = IpAddress(local_termination_ip_str);
                     }
                     catch (invalid_argument& err)
                     {
-                        SWSS_LOG_ERROR("vxlan_id '%d' exists already", vxlan_id);
+                        SWSS_LOG_ERROR("Invalid ip address for local_termination_ip: '%s'", local_termination_ip_str.c_str());
                         break;
                     }
 
@@ -188,7 +192,7 @@ void TunnelOrch::doTask(Consumer& consumer)
                     {
                         // FIXME: do the action
                         // REMOVE ME
-                        SWSS_LOG_ERROR("Doing action: set local local_termination_ip");
+                        SWSS_LOG_ERROR("Doing action: set local local_termination_ip: %s", local_termination_ip_str.c_str());
                         // REMOVE ME
                         m_decapsulation_is_set = true;
                     }
@@ -272,14 +276,14 @@ void VRouterRoutesOrch::doTask(Consumer& consumer)
         string op = kfvOp(t);
 
         auto key_elements = tokenize(key, ':');
-        if (key_elements.size() < 3)
+        if (key_elements.size() < 2)
         {
             SWSS_LOG_ERROR("Invalid key: '%s'. vrf_id and ip_prefix should be presented", key.c_str());
             it = consumer.m_toSync.erase(it);
             continue;
         }
 
-        auto vrf_id = key_elements[1];
+        auto vrf_id = key_elements[0];
         if (m_vrouter_orch->isExist(vrf_id))
         {
             SWSS_LOG_ERROR("vrf_id '%s' is not presented", vrf_id.c_str());
@@ -287,7 +291,7 @@ void VRouterRoutesOrch::doTask(Consumer& consumer)
             continue;
         }
 
-        auto ip_prefix_str = key_elements[2];
+        auto ip_prefix_str = key_elements[1];
         IpPrefix ip_prefix;
         try
         {

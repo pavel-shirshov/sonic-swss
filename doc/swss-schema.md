@@ -46,6 +46,7 @@ IP prefixes are formatted according to [RFC5954](https://tools.ietf.org/html/rfc
     scope          = "global" / "local"        ; local is an interface visible on this localhost only
     if_mtu         = 1*4DIGIT                  ; MTU for the interface
     family         = "IPv4" / "IPv6"           ; address family
+    vrf_id         = name_if_vrf_id            ; vrf_id of the interface
 
     IPv6prefix     =                             6( h16 ":" ) ls32
                     /                       "::" 5( h16 ":" ) ls32
@@ -616,6 +617,91 @@ Equivalent RedisDB entry:
     11) "queue"
     12) "0"
     127.0.0.1:6379>
+
+----------------------------------------------
+
+### VROUTER\_TABLE
+Stores information about virtual routers.
+
+    key       = VROUTER_TABLE:vrf_id ; vrf_id is unique virtual router identifier
+    ; field   = value
+    name      = name_of_vrf   ; name of vrf. any string
+
+Example:
+
+    [
+        {
+            "VROUTER_TABLE:first": {
+                "name" : "first"
+            },
+            "OP": "SET"
+        }
+    ]
+
+----------------------------------------------
+
+### TUNNEL\_TABLE
+Stores information about tunnels.
+
+    key       = TUNNEL_TABLE:direction:vxlan:vxlan_id
+    ; where:
+    ;   direction is equal to 'encapsulation' and 'decapsulation'
+    ;   vxlan_id is a number from 0 to 16777215
+    ;
+    ; field   = value
+    vrf_id    = vrf_id                ; vrf_id defined in VROUTER_TABLE
+                                      ; valid only for "encapsulation" direction
+    local_termination_ip = ip_address ; local ip address for receiving tunnel messages
+                                      ; valid only for "decapsulation" direction
+
+Examples:
+
+    [
+        {
+            "TUNNEL_TABLE:encapsulation:vxlan:10": {
+                "vrf_id" : "first"
+            },
+            "OP": "SET"
+        }
+    ]
+
+    [
+        {
+            "TUNNEL_TABLE:decapsulation:vxlan": {
+                "local_termination_ip" : "10.1.0.32"
+            },
+            "OP": "SET"
+        }
+    ]
+
+----------------------------------------------
+
+### VROUTER\_ROUTES\_TABLE
+Stores information about routes for virtual routers.
+
+    key       = VROUTER_ROUTES_TABLE:vrf_id:ip_prefix
+    ; where:
+    ;   vrf_id defined in VROUTER_TABLE
+    ;   destination ip_prefix
+    ;
+    ; field   = value
+    nexthop_type    = "vxlan"         ; type of the tunnel
+    nexthop         = ip_address      ; ip address of target host
+    vxlan_id        = integer         ; vxlan_id
+
+Examples:
+
+    [
+        {
+            "VROUTER_ROUTES_TABLE:first:10.0.0.1/32": {
+                "nexthop_type": "vxlan",
+                "nexthop": "8.8.8.8",
+                "vxlan_id": "10"
+            },
+            "OP": "SET"
+        }
+    ]
+
 
 ### Configuration files
 What configuration files should we have?  Do apps, orch agent each need separate files?

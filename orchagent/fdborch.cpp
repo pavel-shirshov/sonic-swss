@@ -6,6 +6,8 @@
 #include "tokenize.h"
 #include "fdborch.h"
 
+#define VLAN_PREFIX         "Vlan"
+
 extern sai_fdb_api_t    *sai_fdb_api;
 
 extern sai_object_id_t  gSwitchId;
@@ -138,7 +140,7 @@ void FdbOrch::doTask(Consumer& consumer)
             // Uncomment this after this issue is fixed.
             // if (type == "dynamic")
             // {
-            //     m_table.del(kfvKey(t));
+            //     m_appFdbtable.del(kfvKey(t));
             // }
         }
         else if (op == DEL_COMMAND)
@@ -189,6 +191,13 @@ bool FdbOrch::addFdbEntry(const FdbEntry& entry, const string& port_name, const 
     if (!port.m_bridge_port_id)
     {
         SWSS_LOG_INFO("Port %s does not have a bridge port ID", port_name.c_str());
+        return false;
+    }
+
+    /* Retry until port became a member of VLAN*/
+    if (!isVlanMemberReady(entry.vlan, port_name))
+    {
+        SWSS_LOG_INFO("Port %s is not member of Vlan%d yet", port_name.c_str(), entry.vlan);
         return false;
     }
 
@@ -248,4 +257,22 @@ bool FdbOrch::removeFdbEntry(const FdbEntry& entry)
     (void)m_entries.erase(entry);
 
     return true;
+}
+
+bool FdbOrch::isVlanMemberReady(int vlan_id, const string& port_alias)
+{
+    vector<FieldValueTuple> temp;
+
+    string key;
+    key = VLAN_PREFIX + to_string(vlan_id);
+    key += CONFIGDB_KEY_SEPARATOR;
+    key += port_alias;
+
+    if (m_stateVlanMemberTable.get(key, temp))
+    {
+        SWSS_LOG_DEBUG("Member %s of Vlan%d is ready", port_alias.c_str(), vlan_id);
+        return true;
+    }
+
+    return false;
 }

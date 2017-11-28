@@ -23,9 +23,10 @@ FdbOrch *gFdbOrch;
 /*Global variable gAclOrch declared*/
 AclOrch *gAclOrch;
 
-OrchDaemon::OrchDaemon(DBConnector *applDb, DBConnector *configDb) :
+OrchDaemon::OrchDaemon(DBConnector *applDb, DBConnector *configDb, DBConnector *stateDb) :
         m_applDb(applDb),
-        m_configDb(configDb)
+        m_configDb(configDb),
+        m_stateDb(stateDb)
 
 {
     SWSS_LOG_ENTER();
@@ -58,7 +59,7 @@ bool OrchDaemon::init()
     };
 
     gPortsOrch = new PortsOrch(m_applDb, ports_tables);
-    gFdbOrch = new FdbOrch(m_applDb, APP_FDB_TABLE_NAME, gPortsOrch);
+    gFdbOrch = new FdbOrch(m_applDb, APP_FDB_TABLE_NAME, m_stateDb, gPortsOrch);
     IntfsOrch *intfs_orch = new IntfsOrch(m_applDb, APP_INTF_TABLE_NAME);
     NeighOrch *neigh_orch = new NeighOrch(m_applDb, APP_NEIGH_TABLE_NAME, intfs_orch);
     RouteOrch *route_orch = new RouteOrch(m_applDb, APP_ROUTE_TABLE_NAME, neigh_orch);

@@ -445,7 +445,11 @@ void VlanMgr::doVlanMemberTask(Consumer &consumer)
                 key += DEFAULT_KEY_SEPARATOR;
                 key += port_alias;
                 m_appVlanMemberTableProducer.set(key, kfvFieldsValues(t));
+
                 // add statedb entry for a vlan mbmber port
+                key = VLAN_PREFIX + to_string(vlan_id);
+                key += CONFIGDB_KEY_SEPARATOR;
+                key += port_alias;
                 vector<FieldValueTuple> fvVector;
                 FieldValueTuple s("state", "ok");
                 fvVector.push_back(s);

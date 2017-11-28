@@ -26,10 +26,11 @@ struct FdbUpdate
 class FdbOrch: public Orch, public Subject
 {
 public:
-    FdbOrch(DBConnector *db, string tableName, PortsOrch *port) :
-        Orch(db, tableName),
+    FdbOrch(DBConnector *appDb, string tableName, DBConnector *stateDb, PortsOrch *port) :
+        Orch(appDb, tableName),
         m_portsOrch(port),
-        m_table(Table(db, tableName))
+        m_appFdbtable(Table(appDb, tableName)),
+        m_stateVlanMemberTable(stateDb, STATE_VLAN_MEMBER_TABLE_NAME, CONFIGDB_TABLE_NAME_SEPARATOR)
     {
     }
 
@@ -39,12 +40,14 @@ public:
 private:
     PortsOrch *m_portsOrch;
     set<FdbEntry> m_entries;
-    Table m_table;
+    Table m_appFdbtable;
+    Table m_stateVlanMemberTable;
 
     void doTask(Consumer& consumer);
 
     bool addFdbEntry(const FdbEntry&, const string&, const string&);
     bool removeFdbEntry(const FdbEntry&);
+    bool isVlanMemberReady(int, const string&);
 };
 
 #endif /* SWSS_FDBORCH_H */

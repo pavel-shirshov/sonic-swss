@@ -26,6 +26,7 @@ VlanMgr::VlanMgr(DBConnector *cfgDb, DBConnector *appDb, DBConnector *stateDb, c
         m_statePortTable(stateDb, STATE_PORT_TABLE_NAME, CONFIGDB_TABLE_NAME_SEPARATOR),
         m_stateLagTable(stateDb, STATE_LAG_TABLE_NAME, CONFIGDB_TABLE_NAME_SEPARATOR),
         m_stateVlanTable(stateDb, STATE_VLAN_TABLE_NAME, CONFIGDB_TABLE_NAME_SEPARATOR),
+        m_stateVlanMemberTable(stateDb, STATE_VLAN_MEMBER_TABLE_NAME, CONFIGDB_TABLE_NAME_SEPARATOR),
         m_appVlanTableProducer(appDb, APP_VLAN_TABLE_NAME),
         m_appVlanMemberTableProducer(appDb, APP_VLAN_MEMBER_TABLE_NAME)
 {
@@ -444,6 +445,11 @@ void VlanMgr::doVlanMemberTask(Consumer &consumer)
                 key += DEFAULT_KEY_SEPARATOR;
                 key += port_alias;
                 m_appVlanMemberTableProducer.set(key, kfvFieldsValues(t));
+                // add statedb entry for a vlan mbmber port
+                vector<FieldValueTuple> fvVector;
+                FieldValueTuple s("state", "ok");
+                fvVector.push_back(s);
+                m_stateVlanMemberTable.set(key, fvVector);
             }
             it = consumer.m_toSync.erase(it);
         }
@@ -455,6 +461,8 @@ void VlanMgr::doVlanMemberTask(Consumer &consumer)
             key += port_alias;
             m_appVlanMemberTableProducer.del(key);
             SWSS_LOG_DEBUG("%s", (dumpTuple(consumer, t)).c_str());
+            // remove statedb entry for a vlan mbmber port
+            m_stateVlanMemberTable.del(key);
             it = consumer.m_toSync.erase(it);
         }
         else
